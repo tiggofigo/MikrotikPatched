@@ -1,4 +1,4 @@
-name: Patch
+name: Generate Lic Key
 
 on:
   workflow_dispatch:
@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: [x86, arm, arm64, mipsbe, mmips, smips, tile, ppc]
+        arch: [Lic]
 
     steps:
     - name: Checkout
@@ -30,7 +30,7 @@ jobs:
       with:
         python-version: '3.x'
 
-    - name: Get latest version
+    - name: Generate License
       id: get_latest
       run: |
             python3 license.py licgenros SGPJ-7SKL 9DBC845E9018537810FDAE62824322EEE1B12BAD81FCA28EC295FB397C61CE0B
