@@ -2,6 +2,11 @@ name: Generate Lic Key
 
 on:
   workflow_dispatch:
+    inputs:
+      license_key:
+        description: 'Input license key (e.g., SGPJ-7SKL)'
+        required: true
+        default: ''
 
 permissions:
   contents: write
@@ -9,9 +14,6 @@ permissions:
 jobs:
   patch:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        arch: [Lic]
 
     steps:
     - name: Checkout
@@ -25,4 +27,4 @@ jobs:
     - name: Generate License
       id: get_latest
       run: |
-            python3 license.py licgenros SGPJ-7SKL 9DBC845E9018537810FDAE62824322EEE1B12BAD81FCA28EC295FB397C61CE0B
+        python3 license.py licgenros ${{ github.event.inputs.license_key }} 9DBC845E9018537810FDAE62824322EEE1B12BAD81FCA28EC295FB397C61CE0B
