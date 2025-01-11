@@ -25,14 +25,9 @@ jobs:
         python-version: '3.x'
 
     - name: Generate License
-      id: get_latest
+      id: generate_license
       run: |
-        python3 license.py licgenros ${{ github.event.inputs.license_key }} 9DBC845E9018537810FDAE62824322EEE1B12BAD81FCA28EC295FB397C61CE0B
-
-    - name: Save License Key to File
-      run: |
-        echo "${{ github.event.inputs.license_key }}" > ${{ github.event.inputs.license_key }}.key
-      shell: bash
+        python3 license.py licgenros ${{ github.event.inputs.license_key }} 9DBC845E9018537810FDAE62824322EEE1B12BAD81FCA28EC295FB397C61CE0B > ${{ github.event.inputs.license_key }}.key
 
     - name: Commit and Push License Key File
       run: |
