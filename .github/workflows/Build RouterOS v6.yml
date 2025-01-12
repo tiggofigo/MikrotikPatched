@@ -14,7 +14,7 @@ env:
   CUSTOM_NPK_SIGN_PUBLIC_KEY: ${{ secrets.CUSTOM_NPK_SIGN_PUBLIC_KEY }}
   CUSTOM_LICENSE_PRIVATE_KEY: ${{ secrets.CUSTOM_LICENSE_PRIVATE_KEY }}
   CUSTOM_LICENSE_PUBLIC_KEY: ${{ secrets.CUSTOM_LICENSE_PUBLIC_KEY }}
-jobs:
+  jobs:
   patch:
     runs-on: ubuntu-latest
 
@@ -81,7 +81,7 @@ jobs:
           sudo -E python3 npk.py sign $file $file
         done
         sudo cp system-$LATEST_VERSION.npk ./new_iso/
-        sudo mkisofs -o mikrotik-$LATEST_VERSION.iso \
+        sudo mkisofs -o mikrotik-$LATEST_VERSION-OEM.iso \
                      -V "MikroTik $LATEST_VERSION" \
                      -sysid "" -preparer "MiKroTiK" \
                      -publisher "" -A "MiKroTiK RouterOS" \
@@ -97,7 +97,7 @@ jobs:
         sudo cp ./new_iso/*.npk ./all_packages/
         sudo rm -rf ./new_iso
         cd ./all_packages
-        sudo zip ../all_packages-x86-$LATEST_VERSION.zip *.npk
+        sudo zip ../all_packages-x86-$LATEST_VERSION-OEM.zip *.npk
         cd ..
 
     - name: Cache install-image-${{ env.LATEST_VERSION }}.zip
@@ -133,27 +133,27 @@ jobs:
         sudo umount /dev/nbd0
         sudo qemu-nbd -d /dev/nbd0
         sudo rm -rf ./install
-        sudo mv install-image-$LATEST_VERSION.img install-image-$LATEST_VERSION.img
+        sudo mv install-image-$LATEST_VERSION.img install-image-$LATEST_VERSION-OEM.img
 
-        sudo qemu-img convert -f raw -O qcow2 install-image-$LATEST_VERSION.img install-image-$LATEST_VERSION.qcow2
-        sudo qemu-img convert -f raw -O vmdk install-image-$LATEST_VERSION.img install-image-$LATEST_VERSION.vmdk
-        sudo qemu-img convert -f raw -O vpc install-image-$LATEST_VERSION.img install-image-$LATEST_VERSION.vhd
-        sudo qemu-img convert -f raw -O vhdx install-image-$LATEST_VERSION.img install-image-$LATEST_VERSION.vhdx
-        sudo qemu-img convert -f raw -O vdi install-image-$LATEST_VERSION.img install-image-$LATEST_VERSION.vdi
+        sudo qemu-img convert -f raw -O qcow2 install-image-$LATEST_VERSION-OEM.img install-image-$LATEST_VERSION-OEM.qcow2
+        sudo qemu-img convert -f raw -O vmdk install-image-$LATEST_VERSION-OEM.img install-image-$LATEST_VERSION-OEM.vmdk
+        sudo qemu-img convert -f raw -O vpc install-image-$LATEST_VERSION-OEM.img install-image-$LATEST_VERSION-OEM.vhd
+        sudo qemu-img convert -f raw -O vhdx install-image-$LATEST_VERSION-OEM.img install-image-$LATEST_VERSION-OEM.vhdx
+        sudo qemu-img convert -f raw -O vdi install-image-$LATEST_VERSION-OEM.img install-image-$LATEST_VERSION-OEM.vdi
 
-        sudo zip install-image-$LATEST_VERSION.qcow2.zip install-image-$LATEST_VERSION.qcow2
-        sudo zip install-image-$LATEST_VERSION.vmdk.zip install-image-$LATEST_VERSION.vmdk
-        sudo zip install-image-$LATEST_VERSION.vhd.zip install-image-$LATEST_VERSION.vhd
-        sudo zip install-image-$LATEST_VERSION.vhdx.zip install-image-$LATEST_VERSION.vhdx
-        sudo zip install-image-$LATEST_VERSION.vdi.zip install-image-$LATEST_VERSION.vdi
-        sudo zip install-image-$LATEST_VERSION.img.zip install-image-$LATEST_VERSION.img
+        sudo zip install-image-$LATEST_VERSION-OEM.qcow2.zip install-image-$LATEST_VERSION-OEM.qcow2
+        sudo zip install-image-$LATEST_VERSION-OEM.vmdk.zip install-image-$LATEST_VERSION-OEM.vmdk
+        sudo zip install-image-$LATEST_VERSION-OEM.vhd.zip install-image-$LATEST_VERSION-OEM.vhd
+        sudo zip install-image-$LATEST_VERSION-OEM.vhdx.zip install-image-$LATEST_VERSION-OEM.vhdx
+        sudo zip install-image-$LATEST_VERSION-OEM.vdi.zip install-image-$LATEST_VERSION-OEM.vdi
+        sudo zip install-image-$LATEST_VERSION-OEM.img.zip install-image-$LATEST_VERSION-OEM.img
 
-        sudo rm install-image-$LATEST_VERSION.qcow2
-        sudo rm install-image-$LATEST_VERSION.vmdk
-        sudo rm install-image-$LATEST_VERSION.vhd
-        sudo rm install-image-$LATEST_VERSION.vhdx
-        sudo rm install-image-$LATEST_VERSION.vdi
-        sudo rm install-image-$LATEST_VERSION.img
+        sudo rm install-image-$LATEST_VERSION-OEM.qcow2
+        sudo rm install-image-$LATEST_VERSION-OEM.vmdk
+        sudo rm install-image-$LATEST_VERSION-OEM.vhd
+        sudo rm install-image-$LATEST_VERSION-OEM.vhdx
+        sudo rm install-image-$LATEST_VERSION-OEM.vdi
+        sudo rm install-image-$LATEST_VERSION-OEM.img
 
     - name: Cache chr-${{ env.LATEST_VERSION }}.zip
       if: steps.get_latest.outputs.has_new_version == 'true'
@@ -181,31 +181,31 @@ jobs:
         sudo cp ./all_packages/dude-$LATEST_VERSION.npk ./chr/var/pdb/dude/image
         sudo -E python3 patch.py npk ./chr/var/pdb/routeros-x86/image
         sudo cp ./chr/var/pdb/routeros-x86/image ./all_packages/routeros-x86-$LATEST_VERSION.npk
-        sudo cp ./all_packages/routeros-x86-$LATEST_VERSION.npk ./routeros-x86-$LATEST_VERSION.npk
+        sudo cp ./all_packages/routeros-x86-$LATEST_VERSION.npk ./routeros-x86-$LATEST_VERSION-OEM.npk
         sudo umount ./chr
         sudo qemu-nbd -d /dev/nbd0
         sudo rm -rf ./chr
-        sudo cp chr-$LATEST_VERSION.img chr-$LATEST_VERSION.img
+        sudo cp chr-$LATEST_VERSION.img chr-$LATEST_VERSION-OEM.img
 
-        sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION.img chr-$LATEST_VERSION.qcow2
-        sudo qemu-img convert -f raw -O vmdk chr-$LATEST_VERSION.img chr-$LATEST_VERSION.vmdk
-        sudo qemu-img convert -f raw -O vpc chr-$LATEST_VERSION.img chr-$LATEST_VERSION.vhd
-        sudo qemu-img convert -f raw -O vhdx chr-$LATEST_VERSION.img chr-$LATEST_VERSION.vhdx
-        sudo qemu-img convert -f raw -O vdi chr-$LATEST_VERSION.img chr-$LATEST_VERSION.vdi
+        sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION-OEM.img chr-$LATEST_VERSION-OEM.qcow2
+        sudo qemu-img convert -f raw -O vmdk chr-$LATEST_VERSION-OEM.img chr-$LATEST_VERSION-OEM.vmdk
+        sudo qemu-img convert -f raw -O vpc chr-$LATEST_VERSION-OEM.img chr-$LATEST_VERSION-OEM.vhd
+        sudo qemu-img convert -f raw -O vhdx chr-$LATEST_VERSION-OEM.img chr-$LATEST_VERSION-OEM.vhdx
+        sudo qemu-img convert -f raw -O vdi chr-$LATEST_VERSION-OEM.img chr-$LATEST_VERSION-OEM.vdi
 
-        sudo zip chr-$LATEST_VERSION.qcow2.zip chr-$LATEST_VERSION.qcow2
-        sudo zip chr-$LATEST_VERSION.vmdk.zip chr-$LATEST_VERSION.vmdk
-        sudo zip chr-$LATEST_VERSION.vhd.zip chr-$LATEST_VERSION.vhd
-        sudo zip chr-$LATEST_VERSION.vhdx.zip chr-$LATEST_VERSION.vhdx
-        sudo zip chr-$LATEST_VERSION.vdi.zip chr-$LATEST_VERSION.vdi
-        sudo zip chr-$LATEST_VERSION.img.zip chr-$LATEST_VERSION.img
+        sudo zip chr-$LATEST_VERSION-OEM.qcow2.zip chr-$LATEST_VERSION-OEM.qcow2
+        sudo zip chr-$LATEST_VERSION-OEM.vmdk.zip chr-$LATEST_VERSION-OEM.vmdk
+        sudo zip chr-$LATEST_VERSION-OEM.vhd.zip chr-$LATEST_VERSION-OEM.vhd
+        sudo zip chr-$LATEST_VERSION-OEM.vhdx.zip chr-$LATEST_VERSION-OEM.vhdx
+        sudo zip chr-$LATEST_VERSION-OEM.vdi.zip chr-$LATEST_VERSION-OEM.vdi
+        sudo zip chr-$LATEST_VERSION-OEM.img.zip chr-$LATEST_VERSION-OEM.img
 
-        sudo rm chr-$LATEST_VERSION.qcow2
-        sudo rm chr-$LATEST_VERSION.vmdk
-        sudo rm chr-$LATEST_VERSION.vhd
-        sudo rm chr-$LATEST_VERSION.vhdx
-        sudo rm chr-$LATEST_VERSION.vdi
-        sudo rm chr-$LATEST_VERSION.img
+        sudo rm chr-$LATEST_VERSION-OEM.qcow2
+        sudo rm chr-$LATEST_VERSION-OEM.vmdk
+        sudo rm chr-$LATEST_VERSION-OEM.vhd
+        sudo rm chr-$LATEST_VERSION-OEM.vhdx
+        sudo rm chr-$LATEST_VERSION-OEM.vdi
+        sudo rm chr-$LATEST_VERSION-OEM.img
 
     - name: Update latest version
       if: steps.get_latest.outputs.has_new_version == 'true'
@@ -226,8 +226,8 @@ jobs:
         tag_name: ${{ env.LATEST_VERSION }}
         make_latest: true
         files: |
-          mikrotik-${{ env.LATEST_VERSION }}.iso
-          install-image-${{ env.LATEST_VERSION }}.*.zip
-          chr-${{ env.LATEST_VERSION }}.*.zip
-          routeros-x86-${{ env.LATEST_VERSION }}.npk
-          all_packages-x86-${{ env.LATEST_VERSION }}.zip
+          mikrotik-${{ env.LATEST_VERSION }}-OEM.iso
+          install-image-${{ env.LATEST_VERSION }}-OEM.*.zip
+          chr-${{ env.LATEST_VERSION }}-OEM.*.zip
+          routeros-x86-${{ env.LATEST_VERSION }}-OEM.npk
+          all_packages-x86-${{ env.LATEST_VERSION }}-OEM.zip
