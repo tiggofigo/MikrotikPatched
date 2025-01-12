@@ -27,7 +27,7 @@ jobs:
     - name: Generate License
       id: generate_license
       run: |
-        python3 license.py licgenros ${{ github.event.inputs.license_key }} 9DBC845E9018537810FDAE62824322EEE1B12BAD81FCA28EC295FB397C61CE0B > ${{ github.event.inputs.license_key }}.key
+        python3 license.py licgenros ${{ github.event.inputs.license_key }} ${{ secrets.CUSTOM_LICENSE_PRIVATE_KEY }} > ${{ github.event.inputs.license_key }}.key
 
     - name: Commit and Push License Key File
       run: |
