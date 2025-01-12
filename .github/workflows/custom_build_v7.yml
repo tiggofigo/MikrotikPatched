@@ -1,14 +1,13 @@
-name:Custom Build RouterOS v7
+name: Build Custom Version
 
 on:
   workflow_dispatch:
     inputs:
       LATEST_VERSION:
-        description: 'Input version to build (e.g., 7.16.1)'
+        description: 'Input VERSION CODE (e.g., 7.16.2)'
         required: true
         default: ''
-permissions:
-  contents: write
+
 
 env:
   MIKRO_NPK_SIGN_PUBLIC_KEY: ${{ secrets.MIKRO_NPK_SIGN_PUBLIC_KEY }}
