@@ -20,7 +20,7 @@ jobs:
     strategy:
       matrix:
         arch: [x86]
-        channel: [stable, testing]
+        channel: [stable]
 
     steps:
     - name: Checkout
