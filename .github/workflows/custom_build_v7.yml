@@ -198,9 +198,116 @@ jobs:
         sudo rm -rf ./install
         sudo mv install-image-$LATEST_VERSION.img install-image-$LATEST_VERSION$ARCH-OEM.img
 
+        sudo qemu-img convert -f raw -O qcow2 install-image-$LATEST_VERSION$ARCH-OEM.img install-image-$LATEST_VERSION$ARCH-OEM.qcow2
+        sudo qemu-img convert -f raw -O vmdk install-image-$LATEST_VERSION$ARCH-OEM.img install-image-$LATEST_VERSION$ARCH-OEM.vmdk
+        sudo qemu-img convert -f raw -O vpc install-image-$LATEST_VERSION$ARCH-OEM.img install-image-$LATEST_VERSION$ARCH-OEM.vhd
+        sudo qemu-img convert -f raw -O vhdx install-image-$LATEST_VERSION$ARCH-OEM.img install-image-$LATEST_VERSION$ARCH-OEM.vhdx
+        sudo qemu-img convert -f raw -O vdi install-image-$LATEST_VERSION$ARCH-OEM.img install-image-$LATEST_VERSION$ARCH-OEM.vdi
+
+        sudo zip install-image-$LATEST_VERSION$ARCH-OEM.qcow2.zip install-image-$LATEST_VERSION$ARCH-OEM.qcow2
+        sudo zip install-image-$LATEST_VERSION$ARCH-OEM.vmdk.zip install-image-$LATEST_VERSION$ARCH-OEM.vmdk
+        sudo zip install-image-$LATEST_VERSION$ARCH-OEM.vhd.zip install-image-$LATEST_VERSION$ARCH-OEM.vhd
+        sudo zip install-image-$LATEST_VERSION$ARCH-OEM.vhdx.zip install-image-$LATEST_VERSION$ARCH-OEM.vhdx
+        sudo zip install-image-$LATEST_VERSION$ARCH-OEM.vdi.zip install-image-$LATEST_VERSION$ARCH-OEM.vdi
         sudo zip install-image-$LATEST_VERSION$ARCH-OEM.img.zip install-image-$LATEST_VERSION$ARCH-OEM.img
 
+        sudo rm install-image-$LATEST_VERSION$ARCH-OEM.qcow2
+        sudo rm install-image-$LATEST_VERSION$ARCH-OEM.vmdk
+        sudo rm install-image-$LATEST_VERSION$ARCH-OEM.vhd
+        sudo rm install-image-$LATEST_VERSION$ARCH-OEM.vhdx
+        sudo rm install-image-$LATEST_VERSION$ARCH-OEM.vdi
         sudo rm install-image-$LATEST_VERSION$ARCH-OEM.img
+
+    - name: Cache chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}.zip
+      if: steps.get_latest.outputs.has_new_version == 'true' && (matrix.arch == 'x86' || matrix.arch == 'arm64')
+      id: cache_chr_img
+      uses: actions/cache@v4
+      with:
+        path: chr.img.zip
+        key: chr-${{ env.LATEST_VERSION }}-${{ matrix.arch }}
+
+    - name: Get chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}.zip
+      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache_chr_img.outputs.cache-hit != 'true' && (matrix.arch == 'x86' || matrix.arch == 'arm64')
+      run: |
+        sudo curl -s -o chr.img.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/chr-$LATEST_VERSION$ARCH.img.zip
+
+    - name: Patch chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}.img
+      if: steps.get_latest.outputs.has_new_version == 'true' && (matrix.arch == 'x86' || matrix.arch == 'arm64')
+      run: |
+        sudo apt-get install -y qemu-utils extlinux > /dev/null
+        sudo unzip chr.img.zip
+        sudo modprobe nbd
+        sudo qemu-nbd -c /dev/nbd0 -f raw chr-$LATEST_VERSION$ARCH.img
+        sudo mkdir -p ./img/{boot,routeros}
+        sudo mount /dev/nbd0p1 ./img/boot/
+        if [ "${{ matrix.arch }}" == "x86" ]; then
+          sudo mkdir -p ./img/boot/BOOT
+          sudo cp ./BOOTX64.EFI ./img/boot/EFI/BOOT/BOOTX64.EFI
+          sudo extlinux --install -H 64 -S 32 ./img/boot/BOOT
+          echo -e "default system\nlabel system\n\tkernel /EFI/BOOT/BOOTX64.EFI\n\tappend load_ramdisk=1 root=/dev/ram0 quiet" > syslinux.cfg
+          sudo cp syslinux.cfg ./img/boot/BOOT/
+          sudo rm syslinux.cfg
+        elif [ "${{ matrix.arch }}" == "arm64" ]; then
+          sudo -E python3 patch.py kernel ./img/boot/EFI/BOOT/BOOTAA64.EFI
+        fi
+        sudo umount /dev/nbd0p1
+        sudo mount /dev/nbd0p2 ./img/routeros/
+        sudo cp ./routeros-$LATEST_VERSION$ARCH-OEM.npk ./img/routeros/var/pdb/system/image
+        sudo umount /dev/nbd0p2
+        sudo rm -rf ./img
+        sudo qemu-nbd -d /dev/nbd0
+        sudo mv chr-$LATEST_VERSION$ARCH.img chr-$LATEST_VERSION$ARCH-OEM.img
+
+        sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION$ARCH-OEM.img chr-$LATEST_VERSION$ARCH-OEM.qcow2
+        sudo qemu-img convert -f raw -O vmdk chr-$LATEST_VERSION$ARCH-OEM.img chr-$LATEST_VERSION$ARCH-OEM.vmdk
+        sudo qemu-img convert -f raw -O vpc chr-$LATEST_VERSION$ARCH-OEM.img chr-$LATEST_VERSION$ARCH-OEM.vhd
+        sudo qemu-img convert -f raw -O vhdx chr-$LATEST_VERSION$ARCH-OEM.img chr-$LATEST_VERSION$ARCH-OEM.vhdx
+        sudo qemu-img convert -f raw -O vdi chr-$LATEST_VERSION$ARCH-OEM.img chr-$LATEST_VERSION$ARCH-OEM.vdi
+
+        sudo zip chr-$LATEST_VERSION$ARCH-OEM.qcow2.zip chr-$LATEST_VERSION$ARCH-OEM.qcow2
+        sudo zip chr-$LATEST_VERSION$ARCH-OEM.vmdk.zip chr-$LATEST_VERSION$ARCH-OEM.vmdk
+        sudo zip chr-$LATEST_VERSION$ARCH-OEM.vhd.zip chr-$LATEST_VERSION$ARCH-OEM.vhd
+        sudo zip chr-$LATEST_VERSION$ARCH-OEM.vhdx.zip chr-$LATEST_VERSION$ARCH-OEM.vhdx
+        sudo zip chr-$LATEST_VERSION$ARCH-OEM.vdi.zip chr-$LATEST_VERSION$ARCH-OEM.vdi
+        sudo zip chr-$LATEST_VERSION$ARCH-OEM.img.zip chr-$LATEST_VERSION$ARCH-OEM.img
+
+        sudo rm chr-$LATEST_VERSION$ARCH-OEM.qcow2
+        sudo rm chr-$LATEST_VERSION$ARCH-OEM.vmdk
+        sudo rm chr-$LATEST_VERSION$ARCH-OEM.vhd
+        sudo rm chr-$LATEST_VERSION$ARCH-OEM.vhdx
+        sudo rm chr-$LATEST_VERSION$ARCH-OEM.vdi
+        sudo rm chr-$LATEST_VERSION$ARCH-OEM.img
+
+    - name: Cache NetInstall ${{ env.LATEST_VERSION }}
+      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
+      id: cache_netinstall
+      uses: actions/cache@v4
+      with:
+        path: |
+          netinstall.zip
+          netinstall64.zip
+          netinstall.tar.gz
+        key: netinstall-${{ env.LATEST_VERSION }}
+
+    - name: Get netinstall ${{ env.LATEST_VERSION }}
+      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86' && steps.cache_netinstall.outputs.cache-hit != 'true'
+      run: |
+        sudo curl -s -o netinstall.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/netinstall-$LATEST_VERSION.zip
+        sudo curl -s -o netinstall64.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/netinstall64-$LATEST_VERSION.zip
+        sudo curl -s -o netinstall.tar.gz https://download.mikrotik.com/routeros/$LATEST_VERSION/netinstall-$LATEST_VERSION.tar.gz
+
+    - name: Patch netinstall ${{ env.LATEST_VERSION }}
+      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
+      run: |
+        sudo unzip netinstall.zip netinstall.exe
+        sudo -E python3 patch.py netinstall netinstall.exe
+        sudo zip netinstall-$LATEST_VERSION-OEM.zip ./netinstall.exe
+        sudo unzip netinstall64.zip netinstall64.exe
+        sudo -E python3 patch.py netinstall netinstall64.exe
+        sudo zip netinstall64-$LATEST_VERSION-OEM.zip ./netinstall64.exe
+        sudo tar -xvf netinstall.tar.gz
+        sudo -E python3 patch.py netinstall netinstall-cli
+        sudo tar -czvf netinstall-$LATEST_VERSION-OEM.tar.gz ./netinstall-cli
 
     - name: Cache routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk & all_packages${{ env.ARCH }}-${{ env.LATEST_VERSION }}.zip
       if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch != 'x86'
@@ -234,14 +341,30 @@ jobs:
         cd ..
         sudo rm -rf ./all_packages$ARCH-$LATEST_VERSION
 
+    - name: Update latest version
+      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
+      run: |
+        echo $NEWEST > latest7.txt
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add latest7.txt
+        git commit -m "Update latest version"
+        git push
+
     - name: Create Release tag ${{ env.LATEST_VERSION }}
+      if: steps.get_latest.outputs.has_new_version == 'true'
       uses: softprops/action-gh-release@v2
       with:
         name: "RouterOS ${{ env.LATEST_VERSION }}"
         body_path: "CHANGELOG"
         tag_name: ${{ env.LATEST_VERSION }}
+        make_latest: true
         files: |
           mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}-OEM.iso
+          netinstall-${{ env.LATEST_VERSION }}-OEM.zip
+          netinstall64-${{ env.LATEST_VERSION }}-OEM.zip
+          netinstall-${{ env.LATEST_VERSION }}-OEM.tar.gz
           install-image-${{ env.LATEST_VERSION }}${{ env.ARCH }}-OEM.*.zip
+          chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}-OEM.*.zip
           routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}-OEM.npk
           all_packages*-${{ env.LATEST_VERSION }}-OEM.zip
