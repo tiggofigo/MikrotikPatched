@@ -16,7 +16,7 @@ env:
   CUSTOM_LICENSE_PUBLIC_KEY: ${{ secrets.CUSTOM_LICENSE_PUBLIC_KEY }}
   
 jobs:
-  patch:
+  Build_ROS_v6:
     runs-on: ubuntu-latest
 
     steps:
