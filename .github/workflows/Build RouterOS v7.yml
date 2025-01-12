@@ -96,7 +96,7 @@ jobs:
         sudo umount ./iso
         sudo rm -rf ./iso
         sudo -E python3 patch.py npk ./new_iso/routeros-$LATEST_VERSION*.npk
-        sudo cp ./new_iso/routeros-$LATEST_VERSION*.npk ./routeros-$LATEST_VERSION$ARCH-PK.npk
+        sudo cp ./new_iso/routeros-$LATEST_VERSION*.npk ./routeros-$LATEST_VERSION$ARCH-OEM.npk
         NPK_FILES=$(find ./new_iso/*.npk)
         for file in $NPK_FILES; do
           sudo -E python3 npk.py sign $file $file
@@ -108,7 +108,7 @@ jobs:
           sudo cp ./efiboot/linux.x86_64 ./BOOTX64.EFI
           sudo cp ./BOOTX64.EFI ./new_iso/isolinux/linux
           sudo umount ./efiboot
-          sudo mkisofs -o mikrotik-$LATEST_VERSION$ARCH-PK.iso \
+          sudo mkisofs -o mikrotik-$LATEST_VERSION$ARCH-OEM.iso \
                        -V "MikroTik $LATEST_VERSION $ARCH" \
                        -sysid "" -preparer "MiKroTiK" \
                        -publisher "" -A "MiKroTiK RouterOS" \
@@ -126,7 +126,7 @@ jobs:
         elif [ "${{ matrix.arch }}" == "arm64" ]; then
           sudo -E python3 patch.py kernel ./efiboot/EFI/BOOT/BOOTAA64.EFI
           sudo umount ./efiboot
-          sudo xorriso -as mkisofs -o mikrotik-$LATEST_VERSION$ARCH-PK.iso \
+          sudo xorriso -as mkisofs -o mikrotik-$LATEST_VERSION$ARCH-OEM.iso \
                        -V "MikroTik $LATEST_VERSION ${{ matrix.arch }}" \
                        -sysid "" -preparer "MiKroTiK" \
                        -publisher "" -A "MiKroTiK RouterOS" \
@@ -141,7 +141,7 @@ jobs:
         sudo cp ./new_iso/*.npk ./all_packages_iso$ARCH-$LATEST_VERSION/
         sudo rm -rf ./new_iso
         cd ./all_packages_iso$ARCH-$LATEST_VERSION
-        sudo zip ../all_packages$ARCH-$LATEST_VERSION-PK.zip *.npk
+        sudo zip ../all_packages$ARCH-$LATEST_VERSION-OEM.zip *.npk
         cd ..
 
     - name: Cache refind
@@ -192,27 +192,27 @@ jobs:
         sudo umount /dev/nbd0
         sudo qemu-nbd -d /dev/nbd0
         sudo rm -rf ./install
-        sudo mv install-image-$LATEST_VERSION.img install-image-$LATEST_VERSION$ARCH-PK.img
+        sudo mv install-image-$LATEST_VERSION.img install-image-$LATEST_VERSION$ARCH-OEM.img
 
-        sudo qemu-img convert -f raw -O qcow2 install-image-$LATEST_VERSION$ARCH-PK.img install-image-$LATEST_VERSION$ARCH-PK.qcow2
-        sudo qemu-img convert -f raw -O vmdk install-image-$LATEST_VERSION$ARCH-PK.img install-image-$LATEST_VERSION$ARCH-PK.vmdk
-        sudo qemu-img convert -f raw -O vpc install-image-$LATEST_VERSION$ARCH-PK.img install-image-$LATEST_VERSION$ARCH-PK.vhd
-        sudo qemu-img convert -f raw -O vhdx install-image-$LATEST_VERSION$ARCH-PK.img install-image-$LATEST_VERSION$ARCH-PK.vhdx
-        sudo qemu-img convert -f raw -O vdi install-image-$LATEST_VERSION$ARCH-PK.img install-image-$LATEST_VERSION$ARCH-PK.vdi
+        sudo qemu-img convert -f raw -O qcow2 install-image-$LATEST_VERSION$ARCH-OEM.img install-image-$LATEST_VERSION$ARCH-OEM.qcow2
+        sudo qemu-img convert -f raw -O vmdk install-image-$LATEST_VERSION$ARCH-OEM.img install-image-$LATEST_VERSION$ARCH-OEM.vmdk
+        sudo qemu-img convert -f raw -O vpc install-image-$LATEST_VERSION$ARCH-OEM.img install-image-$LATEST_VERSION$ARCH-OEM.vhd
+        sudo qemu-img convert -f raw -O vhdx install-image-$LATEST_VERSION$ARCH-OEM.img install-image-$LATEST_VERSION$ARCH-OEM.vhdx
+        sudo qemu-img convert -f raw -O vdi install-image-$LATEST_VERSION$ARCH-OEM.img install-image-$LATEST_VERSION$ARCH-OEM.vdi
 
-        sudo zip install-image-$LATEST_VERSION$ARCH-PK.qcow2.zip install-image-$LATEST_VERSION$ARCH-PK.qcow2
-        sudo zip install-image-$LATEST_VERSION$ARCH-PK.vmdk.zip install-image-$LATEST_VERSION$ARCH-PK.vmdk
-        sudo zip install-image-$LATEST_VERSION$ARCH-PK.vhd.zip install-image-$LATEST_VERSION$ARCH-PK.vhd
-        sudo zip install-image-$LATEST_VERSION$ARCH-PK.vhdx.zip install-image-$LATEST_VERSION$ARCH-PK.vhdx
-        sudo zip install-image-$LATEST_VERSION$ARCH-PK.vdi.zip install-image-$LATEST_VERSION$ARCH-PK.vdi
-        sudo zip install-image-$LATEST_VERSION$ARCH-PK.img.zip install-image-$LATEST_VERSION$ARCH-PK.img
+        sudo zip install-image-$LATEST_VERSION$ARCH-OEM.qcow2.zip install-image-$LATEST_VERSION$ARCH-OEM.qcow2
+        sudo zip install-image-$LATEST_VERSION$ARCH-OEM.vmdk.zip install-image-$LATEST_VERSION$ARCH-OEM.vmdk
+        sudo zip install-image-$LATEST_VERSION$ARCH-OEM.vhd.zip install-image-$LATEST_VERSION$ARCH-OEM.vhd
+        sudo zip install-image-$LATEST_VERSION$ARCH-OEM.vhdx.zip install-image-$LATEST_VERSION$ARCH-OEM.vhdx
+        sudo zip install-image-$LATEST_VERSION$ARCH-OEM.vdi.zip install-image-$LATEST_VERSION$ARCH-OEM.vdi
+        sudo zip install-image-$LATEST_VERSION$ARCH-OEM.img.zip install-image-$LATEST_VERSION$ARCH-OEM.img
 
-        sudo rm install-image-$LATEST_VERSION$ARCH-PK.qcow2
-        sudo rm install-image-$LATEST_VERSION$ARCH-PK.vmdk
-        sudo rm install-image-$LATEST_VERSION$ARCH-PK.vhd
-        sudo rm install-image-$LATEST_VERSION$ARCH-PK.vhdx
-        sudo rm install-image-$LATEST_VERSION$ARCH-PK.vdi
-        sudo rm install-image-$LATEST_VERSION$ARCH-PK.img
+        sudo rm install-image-$LATEST_VERSION$ARCH-OEM.qcow2
+        sudo rm install-image-$LATEST_VERSION$ARCH-OEM.vmdk
+        sudo rm install-image-$LATEST_VERSION$ARCH-OEM.vhd
+        sudo rm install-image-$LATEST_VERSION$ARCH-OEM.vhdx
+        sudo rm install-image-$LATEST_VERSION$ARCH-OEM.vdi
+        sudo rm install-image-$LATEST_VERSION$ARCH-OEM.img
 
     - name: Cache chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}.zip
       if: steps.get_latest.outputs.has_new_version == 'true' && (matrix.arch == 'x86' || matrix.arch == 'arm64')
@@ -248,31 +248,31 @@ jobs:
         fi
         sudo umount /dev/nbd0p1
         sudo mount /dev/nbd0p2 ./img/routeros/
-        sudo cp ./routeros-$LATEST_VERSION$ARCH-PK.npk ./img/routeros/var/pdb/system/image
+        sudo cp ./routeros-$LATEST_VERSION$ARCH-OEM.npk ./img/routeros/var/pdb/system/image
         sudo umount /dev/nbd0p2
         sudo rm -rf ./img
         sudo qemu-nbd -d /dev/nbd0
-        sudo mv chr-$LATEST_VERSION$ARCH.img chr-$LATEST_VERSION$ARCH-PK.img
+        sudo mv chr-$LATEST_VERSION$ARCH.img chr-$LATEST_VERSION$ARCH-OEM.img
 
-        sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION$ARCH-PK.img chr-$LATEST_VERSION$ARCH-PK.qcow2
-        sudo qemu-img convert -f raw -O vmdk chr-$LATEST_VERSION$ARCH-PK.img chr-$LATEST_VERSION$ARCH-PK.vmdk
-        sudo qemu-img convert -f raw -O vpc chr-$LATEST_VERSION$ARCH-PK.img chr-$LATEST_VERSION$ARCH-PK.vhd
-        sudo qemu-img convert -f raw -O vhdx chr-$LATEST_VERSION$ARCH-PK.img chr-$LATEST_VERSION$ARCH-PK.vhdx
-        sudo qemu-img convert -f raw -O vdi chr-$LATEST_VERSION$ARCH-PK.img chr-$LATEST_VERSION$ARCH-PK.vdi
+        sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION$ARCH-OEM.img chr-$LATEST_VERSION$ARCH-OEM.qcow2
+        sudo qemu-img convert -f raw -O vmdk chr-$LATEST_VERSION$ARCH-OEM.img chr-$LATEST_VERSION$ARCH-OEM.vmdk
+        sudo qemu-img convert -f raw -O vpc chr-$LATEST_VERSION$ARCH-OEM.img chr-$LATEST_VERSION$ARCH-OEM.vhd
+        sudo qemu-img convert -f raw -O vhdx chr-$LATEST_VERSION$ARCH-OEM.img chr-$LATEST_VERSION$ARCH-OEM.vhdx
+        sudo qemu-img convert -f raw -O vdi chr-$LATEST_VERSION$ARCH-OEM.img chr-$LATEST_VERSION$ARCH-OEM.vdi
 
-        sudo zip chr-$LATEST_VERSION$ARCH-PK.qcow2.zip chr-$LATEST_VERSION$ARCH-PK.qcow2
-        sudo zip chr-$LATEST_VERSION$ARCH-PK.vmdk.zip chr-$LATEST_VERSION$ARCH-PK.vmdk
-        sudo zip chr-$LATEST_VERSION$ARCH-PK.vhd.zip chr-$LATEST_VERSION$ARCH-PK.vhd
-        sudo zip chr-$LATEST_VERSION$ARCH-PK.vhdx.zip chr-$LATEST_VERSION$ARCH-PK.vhdx
-        sudo zip chr-$LATEST_VERSION$ARCH-PK.vdi.zip chr-$LATEST_VERSION$ARCH-PK.vdi
-        sudo zip chr-$LATEST_VERSION$ARCH-PK.img.zip chr-$LATEST_VERSION$ARCH-PK.img
+        sudo zip chr-$LATEST_VERSION$ARCH-OEM.qcow2.zip chr-$LATEST_VERSION$ARCH-OEM.qcow2
+        sudo zip chr-$LATEST_VERSION$ARCH-OEM.vmdk.zip chr-$LATEST_VERSION$ARCH-OEM.vmdk
+        sudo zip chr-$LATEST_VERSION$ARCH-OEM.vhd.zip chr-$LATEST_VERSION$ARCH-OEM.vhd
+        sudo zip chr-$LATEST_VERSION$ARCH-OEM.vhdx.zip chr-$LATEST_VERSION$ARCH-OEM.vhdx
+        sudo zip chr-$LATEST_VERSION$ARCH-OEM.vdi.zip chr-$LATEST_VERSION$ARCH-OEM.vdi
+        sudo zip chr-$LATEST_VERSION$ARCH-OEM.img.zip chr-$LATEST_VERSION$ARCH-OEM.img
 
-        sudo rm chr-$LATEST_VERSION$ARCH-PK.qcow2
-        sudo rm chr-$LATEST_VERSION$ARCH-PK.vmdk
-        sudo rm chr-$LATEST_VERSION$ARCH-PK.vhd
-        sudo rm chr-$LATEST_VERSION$ARCH-PK.vhdx
-        sudo rm chr-$LATEST_VERSION$ARCH-PK.vdi
-        sudo rm chr-$LATEST_VERSION$ARCH-PK.img
+        sudo rm chr-$LATEST_VERSION$ARCH-OEM.qcow2
+        sudo rm chr-$LATEST_VERSION$ARCH-OEM.vmdk
+        sudo rm chr-$LATEST_VERSION$ARCH-OEM.vhd
+        sudo rm chr-$LATEST_VERSION$ARCH-OEM.vhdx
+        sudo rm chr-$LATEST_VERSION$ARCH-OEM.vdi
+        sudo rm chr-$LATEST_VERSION$ARCH-OEM.img
 
     - name: Cache NetInstall ${{ env.LATEST_VERSION }}
       if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
@@ -297,13 +297,13 @@ jobs:
       run: |
         sudo unzip netinstall.zip netinstall.exe
         sudo -E python3 patch.py netinstall netinstall.exe
-        sudo zip netinstall-$LATEST_VERSION-PK.zip ./netinstall.exe
+        sudo zip netinstall-$LATEST_VERSION-OEM.zip ./netinstall.exe
         sudo unzip netinstall64.zip netinstall64.exe
         sudo -E python3 patch.py netinstall netinstall64.exe
-        sudo zip netinstall64-$LATEST_VERSION-PK.zip ./netinstall64.exe
+        sudo zip netinstall64-$LATEST_VERSION-OEM.zip ./netinstall64.exe
         sudo tar -xvf netinstall.tar.gz
         sudo -E python3 patch.py netinstall netinstall-cli
-        sudo tar -czvf netinstall-$LATEST_VERSION-PK.tar.gz ./netinstall-cli
+        sudo tar -czvf netinstall-$LATEST_VERSION-OEM.tar.gz ./netinstall-cli
 
     - name: Cache routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk & all_packages${{ env.ARCH }}-${{ env.LATEST_VERSION }}.zip
       if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch != 'x86'
@@ -326,14 +326,14 @@ jobs:
       run: |
         sudo mkdir ./all_packages$ARCH-$LATEST_VERSION
         sudo unzip all_packages$ARCH-$LATEST_VERSION.zip -d ./all_packages$ARCH-$LATEST_VERSION/
-        sudo cp routeros-$LATEST_VERSION$ARCH.npk routeros-$LATEST_VERSION$ARCH-PK.npk
-        sudo -E python3 patch.py npk routeros-$LATEST_VERSION$ARCH-PK.npk
+        sudo cp routeros-$LATEST_VERSION$ARCH.npk routeros-$LATEST_VERSION$ARCH-OEM.npk
+        sudo -E python3 patch.py npk routeros-$LATEST_VERSION$ARCH-OEM.npk
         NPK_FILES=$(find ./all_packages$ARCH-$LATEST_VERSION/*.npk)
         for file in $NPK_FILES; do
           sudo -E python3 npk.py sign $file $file
         done
         cd ./all_packages$ARCH-$LATEST_VERSION
-        sudo zip ../all_packages$ARCH-$LATEST_VERSION-PK.zip *.npk
+        sudo zip ../all_packages$ARCH-$LATEST_VERSION-OEM.zip *.npk
         cd ..
         sudo rm -rf ./all_packages$ARCH-$LATEST_VERSION
 
@@ -356,11 +356,11 @@ jobs:
         tag_name: ${{ env.LATEST_VERSION }}
         make_latest: true
         files: |
-          mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}-PK.iso
-          netinstall-${{ env.LATEST_VERSION }}-PK.zip
-          netinstall64-${{ env.LATEST_VERSION }}-PK.zip
-          netinstall-${{ env.LATEST_VERSION }}-PK.tar.gz
-          install-image-${{ env.LATEST_VERSION }}${{ env.ARCH }}-PK.*.zip
-          chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}-PK.*.zip
-          routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}-PK.npk
-          all_packages*-${{ env.LATEST_VERSION }}-PK.zip
+          mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}-OEM.iso
+          netinstall-${{ env.LATEST_VERSION }}-OEM.zip
+          netinstall64-${{ env.LATEST_VERSION }}-OEM.zip
+          netinstall-${{ env.LATEST_VERSION }}-OEM.tar.gz
+          install-image-${{ env.LATEST_VERSION }}${{ env.ARCH }}-OEM.*.zip
+          chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}-OEM.*.zip
+          routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}-OEM.npk
+          all_packages*-${{ env.LATEST_VERSION }}-OEM.zip
