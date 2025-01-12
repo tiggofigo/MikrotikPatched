@@ -6,7 +6,7 @@ on:
       INPUT_VERSION:
         description: 'Input VERSION CODE (e.g., 7.1.1)'
         required: true
-        default: ''
+        default: '7.1.1'
 
 
 env:
@@ -16,7 +16,7 @@ env:
   CUSTOM_NPK_SIGN_PUBLIC_KEY: ${{ secrets.CUSTOM_NPK_SIGN_PUBLIC_KEY }}
   CUSTOM_LICENSE_PRIVATE_KEY: ${{ secrets.CUSTOM_LICENSE_PRIVATE_KEY }}
   CUSTOM_LICENSE_PUBLIC_KEY: ${{ secrets.CUSTOM_LICENSE_PUBLIC_KEY }}
-  LATEST_VERSION: ${{ github.event.inputs.INPUT_VERSION }}
+  LATEST_VERSION: "${{ github.event.inputs.INPUT_VERSION }}"
 
 jobs:
   Build_ROS_v7:
@@ -233,16 +233,6 @@ jobs:
         sudo zip ../all_packages$ARCH-$LATEST_VERSION-OEM.zip *.npk
         cd ..
         sudo rm -rf ./all_packages$ARCH-$LATEST_VERSION
-
-    - name: Update latest version
-      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
-      run: |
-        echo $NEWEST > latest7.txt
-        git config user.name "github-actions[bot]"
-        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git add latest7.txt
-        git commit -m "Update latest version"
-        git push
 
     - name: Create Release tag ${{ env.LATEST_VERSION }}
       if: steps.get_latest.outputs.has_new_version == 'true'
