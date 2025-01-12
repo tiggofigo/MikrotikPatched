@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 jobs:
-  patch:
+  Gen_Lic_Key:
     runs-on: ubuntu-latest
 
     steps:
