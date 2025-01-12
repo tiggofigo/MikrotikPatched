@@ -1,4 +1,4 @@
-name: Build RouterOS v7
+name:Custom Build RouterOS v7
 
 on:
   workflow_dispatch:
