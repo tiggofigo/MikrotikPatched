@@ -36,5 +36,4 @@ jobs:
          mv "${{ github.event.inputs.license_key }}.key" "License Keys/"
           git add "License Keys/${{ github.event.inputs.license_key }}.key"
           git commit -m "Add license key file: License Keys/${{ github.event.inputs.license_key }}.key"
-          git pull --rebase
           git push
