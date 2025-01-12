@@ -1,4 +1,4 @@
-name: generate own public private keys
+name: generate own custom private keys
 
 on:
   workflow_dispatch:
