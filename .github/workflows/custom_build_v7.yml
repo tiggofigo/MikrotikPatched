@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       LATEST_VERSION:
-        description: 'Input VERSION CODE (e.g., 7.16.2)'
+        description: 'Input VERSION CODE (e.g., 7.1.1)'
         required: true
         default: ''
 
@@ -16,6 +16,7 @@ env:
   CUSTOM_NPK_SIGN_PUBLIC_KEY: ${{ secrets.CUSTOM_NPK_SIGN_PUBLIC_KEY }}
   CUSTOM_LICENSE_PRIVATE_KEY: ${{ secrets.CUSTOM_LICENSE_PRIVATE_KEY }}
   CUSTOM_LICENSE_PUBLIC_KEY: ${{ secrets.CUSTOM_LICENSE_PUBLIC_KEY }}
+  LATEST_VERSION: ${{ github.event.inputs.LATEST_VERSION }}
 
 jobs:
   Build_ROS_v7:
@@ -37,15 +38,23 @@ jobs:
       id: get_latest
       run: |
         echo $(uname -a)
-        NEWEST=$(curl -s https://upgrade.mikrotik.com/routeros/NEWESTa7.stable)
-        LATEST_VERSION=$(echo ${{ github.event.inputs.LATEST_VERSION }} | cut -d' ' -f1)
-        BUILD_TIME=$(echo "$NEWEST" | cut -d' ' -f2)
-        echo Latest Version: $LATEST_VERSION
-        echo Build Time: $BUILD_TIME
-        curl -s -o CHANGELOG https://upgrade.mikrotik.com/routeros/$LATEST_VERSION/CHANGELOG
+        LATEST_VERSION="7.1"
+        echo Latest Version:$LATEST_VERSION
+        if [ "${{ github.event_name }}" == "schedule" ]; then
+          _LATEST_VERSION="7.1"
+          if [ "$_LATEST_VERSION" == "$LATEST_VERSION" ]; then
+            echo "No new version found"
+            echo "has_new_version=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+        fi
+        echo "has_new_version=true" >> $GITHUB_OUTPUT
+        BUILD_TIME=${{ needs.Set_BuildTime.outputs.BUILD_TIME }}
+        echo Build Time:$BUILD_TIME
+        wget -nv -O CHANGELOG https://download.mikrotik.com/routeros/$LATEST_VERSION/CHANGELOG
         cat CHANGELOG
-        echo "NEWEST=${NEWEST}" >> $GITHUB_ENV
         echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
+        echo "BUILD_TIME=${BUILD_TIME}" >> $GITHUB_ENV
         if [ "${{ matrix.arch }}" == "x86" ]; then
           ARCH=''
         elif [ "${{ matrix.arch }}" == "arm" ]; then
