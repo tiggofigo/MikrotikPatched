@@ -1,4 +1,4 @@
-name: Patch
+name: Build ROS v7
 
 on:
   workflow_dispatch:
@@ -20,6 +20,7 @@ jobs:
     strategy:
       matrix:
         arch: [x86]
+        channel: [stable, testing, development]
 
     steps:
     - name: Checkout
