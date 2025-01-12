@@ -17,7 +17,7 @@ env:
 
 jobs:
   Build_ROS_v7:
-   runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         arch: [x86, arm, arm64, mipsbe, mmips, smips, tile, ppc]
