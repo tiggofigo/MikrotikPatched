@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       license_key:
-        description: 'Input license key (e.g., SGPJ-7SKL)'
+        description: 'Input Your Custom Keys file name'
         required: true
-        default: ''
+        default: 'CustomKeys'
 
 permissions:
   contents: write
@@ -27,7 +27,7 @@ jobs:
     - name: Generate License
       id: generate_license
       run: |
-        python3 license.py genkey
+        python3 license.py genkey > ${{ github.event.inputs.license_key }}.key
 
     - name: Commit and Push License Key File
       run: |
