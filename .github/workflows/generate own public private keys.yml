@@ -1,4 +1,4 @@
-name: Generate Lic Key
+name: generate own public private keys
 
 on:
   workflow_dispatch:
