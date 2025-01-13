@@ -1,10 +1,8 @@
 name: Build RouterOS v7
 
 on:
-  # push:
-  #   branches: [ "main" ]
   schedule:
-    - cron: "43 21 * * *"
+    - cron: '0 */1 * * *'
   workflow_dispatch:
 permissions:
   contents: write
