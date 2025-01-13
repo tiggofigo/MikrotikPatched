@@ -1,4 +1,4 @@
-name: Build Custom Version 7
+name: Build Custom Version v7
 
 on:
   workflow_dispatch:
