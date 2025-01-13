@@ -144,7 +144,6 @@ jobs:
         sudo rm -rf chr/
         
     - name: Create Release tag ${{ env.LATEST_VERSION }}
-      if: steps.get_latest.outputs.has_new_version == 'true'
       uses: softprops/action-gh-release@v2
       with:
         name: "RouterOS ${{ env.LATEST_VERSION }}"
@@ -156,3 +155,4 @@ jobs:
           install-image-${{ env.LATEST_VERSION }}-OEM.*.zip
           routeros-x86-${{ env.LATEST_VERSION }}-OEM.npk
           all_packages-x86-${{ env.LATEST_VERSION }}-OEM.zip
+
