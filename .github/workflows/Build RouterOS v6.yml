@@ -129,8 +129,38 @@ jobs:
         sudo qemu-nbd -d /dev/nbd0
         sudo rm -rf install-image/
         sudo mv install-image-$LATEST_VERSION.img install-image-$LATEST_VERSION-OEM.img
-
+        sudo zip install-image-$LATEST_VERSION-OEM.img.zip install-image-$LATEST_VERSION-OEM.img
         sudo rm install-image-$LATEST_VERSION-OEM.img
+        
+    - name: Cache chr-${{ env.LATEST_VERSION }}.zip
+      if: steps.get_latest.outputs.has_new_version == 'true'
+      id: cache_chr_img
+      uses: actions/cache@v4
+      with:
+        path: chr.img.zip
+        key: chr-${{ env.LATEST_VERSION }}-x86
+
+    - name: Get chr-${{ env.LATEST_VERSION }}.zip
+      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache_chr_img.outputs.cache-hit != 'true'
+      run: |
+          sudo curl -s -o chr.img.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/chr-$LATEST_VERSION.img.zip
+
+    - name: Patch chr-${{ env.LATEST_VERSION }}.img
+      if: steps.get_latest.outputs.has_new_version == 'true'
+      run: |
+        sudo apt-get install -y qemu-utils extlinux --no-install-recommends > /dev/null
+        sudo unzip chr.img.zip
+        sudo modprobe nbd
+        sudo qemu-nbd -c /dev/nbd0 -f raw chr-$LATEST_VERSION.img
+        sudo mkdir -p chr/{boot,routeros}
+        sudo -E python3 patch.py block /dev/nbd0p1 boot/initrd.rgz
+        sudo mount /dev/nbd0p1 chr/
+        sudo -E python3 patch.py npk chr/var/pdb/routeros-x86/image
+        sudo cp chr/var/pdb/routeros-x86/image all_packages/routeros-x86-$LATEST_VERSION.npk
+        sudo cp all_packages/routeros-x86-$LATEST_VERSION.npk routeros-x86-$LATEST_VERSION-OEM.npk
+        sudo umount chr/
+        sudo qemu-nbd -d /dev/nbd0
+        sudo rm -rf chr/
         
     - name: Update latest version
       if: steps.get_latest.outputs.has_new_version == 'true'
