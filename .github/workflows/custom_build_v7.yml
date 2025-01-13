@@ -57,7 +57,7 @@ jobs:
         cat CHANGELOG
         echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
         echo "BUILD_TIME=${BUILD_TIME}" >> $GITHUB_ENV
-        if [ "${{ matrix.arch }}" == "x86" ]; then
+          if [ "${{ matrix.arch }}" == "x86" ]; then
           ARCH=''
         elif [ "${{ matrix.arch }}" == "arm" ]; then
           ARCH='-arm'
@@ -93,27 +93,25 @@ jobs:
     - name: Patch mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}.iso
       if: steps.get_latest.outputs.has_new_version == 'true' && (matrix.arch == 'x86' || matrix.arch == 'arm64')
       run: |
-        sudo apt-get install -y mkisofs xorriso > /dev/null
-        sudo mkdir ./iso
-        sudo mount -o loop,ro mikrotik.iso ./iso
-        sudo mkdir ./new_iso
-        sudo cp -r ./iso/* ./new_iso/
-        sudo rsync -a ./iso/ ./new_iso/
-        sudo umount ./iso
-        sudo rm -rf ./iso
-        sudo -E python3 patch.py npk ./new_iso/routeros-$LATEST_VERSION*.npk
-        sudo cp ./new_iso/routeros-$LATEST_VERSION*.npk ./routeros-$LATEST_VERSION$ARCH-OEM.npk
-        NPK_FILES=$(find ./new_iso/*.npk)
+        sudo apt-get install -y mkisofs xorriso --no-install-recommends > /dev/null
+        sudo mkdir iso
+        sudo mount -o loop,ro mikrotik.iso iso/
+        sudo mkdir new_iso
+        sudo cp -r iso/* new_iso/
+        sudo rsync -a iso/ new_iso/
+        sudo umount iso/
+        sudo rm -rf iso/
+        NPK_FILES=$(find new_iso/*.npk)
         for file in $NPK_FILES; do
-          sudo -E python3 npk.py sign $file $file
+          sudo -E python3 patch.py npk $file
         done
-        sudo mkdir ./efiboot
-        sudo mount -o loop ./new_iso/efiboot.img ./efiboot
+        sudo cp new_iso/routeros-$LATEST_VERSION*.npk routeros-$LATEST_VERSION$ARCH-OEM.npk
+        sudo mkdir efiboot
+        sudo mount -o loop new_iso/efiboot.img efiboot/
         if [ "${{ matrix.arch }}" == "x86" ]; then
-          sudo -E python3 patch.py kernel ./efiboot/linux.x86_64
-          sudo cp ./efiboot/linux.x86_64 ./BOOTX64.EFI
-          sudo cp ./BOOTX64.EFI ./new_iso/isolinux/linux
-          sudo umount ./efiboot
+          sudo -E python3 patch.py kernel efiboot/linux.x86_64
+          sudo cp efiboot/linux.x86_64 new_iso/isolinux/linux
+          sudo umount efiboot/
           sudo mkisofs -o mikrotik-$LATEST_VERSION$ARCH-OEM.iso \
                        -V "MikroTik $LATEST_VERSION $ARCH" \
                        -sysid "" -preparer "MiKroTiK" \
@@ -128,10 +126,10 @@ jobs:
                        -e efiboot.img \
                        -no-emul-boot \
                        -R -J \
-                       ./new_iso
+                       new_iso/
         elif [ "${{ matrix.arch }}" == "arm64" ]; then
-          sudo -E python3 patch.py kernel ./efiboot/EFI/BOOT/BOOTAA64.EFI
-          sudo umount ./efiboot
+          sudo -E python3 patch.py kernel efiboot/EFI/BOOT/BOOTAA64.EFI
+          sudo umount efiboot/
           sudo xorriso -as mkisofs -o mikrotik-$LATEST_VERSION$ARCH-OEM.iso \
                        -V "MikroTik $LATEST_VERSION ${{ matrix.arch }}" \
                        -sysid "" -preparer "MiKroTiK" \
@@ -140,15 +138,15 @@ jobs:
                        -b efiboot.img \
                        -no-emul-boot \
                        -R -J \
-                       ./new_iso
+                       new_iso/
         fi
-        sudo rm -rf ./efiboot
-        sudo mkdir ./all_packages_iso$ARCH-$LATEST_VERSION
-        sudo cp ./new_iso/*.npk ./all_packages_iso$ARCH-$LATEST_VERSION/
-        sudo rm -rf ./new_iso
-        cd ./all_packages_iso$ARCH-$LATEST_VERSION
+        sudo rm -rf efiboot/
+        sudo mkdir all_packages_iso$ARCH-$LATEST_VERSION
+        sudo cp new_iso/*.npk all_packages_iso$ARCH-$LATEST_VERSION/
+        sudo rm -rf new_iso/
+        cd all_packages_iso$ARCH-$LATEST_VERSION/
         sudo zip ../all_packages$ARCH-$LATEST_VERSION-OEM.zip *.npk
-        cd ..
+        cd ../
 
     - name: Cache refind
       if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
@@ -160,7 +158,8 @@ jobs:
 
     - name: Get refind
       if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache_refind.outputs.cache-hit != 'true' && matrix.arch == 'x86'
-      run: sudo curl -s -o refind-bin-0.14.2.zip https://nchc.dl.sourceforge.net/project/refind/0.14.2/refind-bin-0.14.2.zip
+      run: |
+        sudo curl -s -o refind-bin-0.14.2.zip https://nchc.dl.sourceforge.net/project/refind/0.14.2/refind-bin-0.14.2.zip
 
     - name: Cache install-image-${{ env.LATEST_VERSION }}${{ env.ARCH }}.zip
       if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
@@ -178,28 +177,25 @@ jobs:
     - name: Patch install-image-${{ env.LATEST_VERSION }}${{ env.ARCH }}.img
       if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
       run: |
-        sudo apt-get install -y qemu-utils extlinux > /dev/null
+        sudo apt-get install -y qemu-utils extlinux --no-install-recommends > /dev/null
         sudo unzip install-image.zip
         sudo modprobe nbd
         sudo qemu-nbd -c /dev/nbd0 -f raw install-image-$LATEST_VERSION.img
-        sudo mkdir ./install
-        sudo mount /dev/nbd0 ./install
-        sudo mkdir -p ./install/EFI/BOOT
+        sudo mkdir install-image
+        sudo mount /dev/nbd0 install-image/
         sudo unzip refind-bin-0.14.2.zip refind-bin-0.14.2/refind/refind_x64.efi
-        sudo cp refind-bin-0.14.2/refind/refind_x64.efi ./install/EFI/BOOT/BOOTX64.EFI
+        sudo cp refind-bin-0.14.2/refind/refind_x64.efi install-image/EFI/BOOT/BOOTX64.EFI
         sudo rm -rf refind-bin-0.14.2
-        sudo cp ./BOOTX64.EFI ./install/linux
-        NPK_FILES=($(find ./all_packages_iso$ARCH-$LATEST_VERSION/*.npk))
-        for ((i=1; i<=${#NPK_FILES[@]}; i++))
-        do
-          echo "${NPK_FILES[$i-1]}=>$i.npk"
-          sudo cp ${NPK_FILES[$i-1]} ./install/$i.npk
+        sudo -E python3 patch.py kernel install-image/linux
+        NPK_FILES=$(find install-image/*.npk)
+        for file in $NPK_FILES; do
+          sudo -E python3 patch.py npk $file
         done
         sudo umount /dev/nbd0
         sudo qemu-nbd -d /dev/nbd0
-        sudo rm -rf ./install
+        sudo rm -rf install-image/
         sudo mv install-image-$LATEST_VERSION.img install-image-$LATEST_VERSION$ARCH-OEM.img
-        sudo rm install-image-$LATEST_VERSION$ARCH-OEM.img
+        sudo zip install-image-$LATEST_VERSION$ARCH-OEM.img.zip install-image-$LATEST_VERSION$ARCH-OEM.img
 
     - name: Cache routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk & all_packages${{ env.ARCH }}-${{ env.LATEST_VERSION }}.zip
       if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch != 'x86'
@@ -220,18 +216,18 @@ jobs:
     - name: Patch routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk & all_packages${{ env.ARCH }}-${{ env.LATEST_VERSION }}.zip
       if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch != 'x86'
       run: |
-        sudo mkdir ./all_packages$ARCH-$LATEST_VERSION
-        sudo unzip all_packages$ARCH-$LATEST_VERSION.zip -d ./all_packages$ARCH-$LATEST_VERSION/
+        sudo mkdir all_packages$ARCH-$LATEST_VERSION
+        sudo unzip all_packages$ARCH-$LATEST_VERSION.zip -d all_packages$ARCH-$LATEST_VERSION/
         sudo cp routeros-$LATEST_VERSION$ARCH.npk routeros-$LATEST_VERSION$ARCH-OEM.npk
         sudo -E python3 patch.py npk routeros-$LATEST_VERSION$ARCH-OEM.npk
-        NPK_FILES=$(find ./all_packages$ARCH-$LATEST_VERSION/*.npk)
+        NPK_FILES=$(find all_packages$ARCH-$LATEST_VERSION/*.npk)
         for file in $NPK_FILES; do
           sudo -E python3 npk.py sign $file $file
         done
-        cd ./all_packages$ARCH-$LATEST_VERSION
+        cd all_packages$ARCH-$LATEST_VERSION/
         sudo zip ../all_packages$ARCH-$LATEST_VERSION-OEM.zip *.npk
         cd ..
-        sudo rm -rf ./all_packages$ARCH-$LATEST_VERSION
+        sudo rm -rf all_packages$ARCH-$LATEST_VERSION/
 
     - name: Update latest version
       if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
