@@ -23,9 +23,6 @@ env:
 jobs:
   Build_Custom_ROS_v6:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        arch: [x86]
 
     steps:
     - name: Checkout
