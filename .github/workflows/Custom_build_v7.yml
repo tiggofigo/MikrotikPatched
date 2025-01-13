@@ -1,4 +1,4 @@
-name: Build Custom Version
+name: Build Custom Version 7
 
 on:
   workflow_dispatch:
@@ -21,7 +21,7 @@ env:
   LATEST_VERSION: "${{ github.event.inputs.INPUT_VERSION }}"
 
 jobs:
-  Build_ROS_v7:
+  Build_Custom_ROS_v7:
     runs-on: ubuntu-latest
     strategy:
       matrix:
