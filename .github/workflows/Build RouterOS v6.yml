@@ -79,7 +79,7 @@ jobs:
         for file in $NPK_FILES; do
           sudo -E python3 patch.py npk $file
         done
-        sudo mkisofs -o mikrotik-$LATEST_VERSION-patched.iso \
+        sudo mkisofs -o mikrotik-$LATEST_VERSION-OEM.iso \
                      -V "MikroTik $LATEST_VERSION" \
                      -sysid "" -preparer "MiKroTiK" \
                      -publisher "" -A "MiKroTiK RouterOS" \
@@ -95,7 +95,7 @@ jobs:
         sudo cp new_iso/*.npk all_packages/
         sudo rm -rf new_iso/
         cd all_packages/
-        sudo zip ../all_packages-x86-$LATEST_VERSION-patched.zip *.npk
+        sudo zip ../all_packages-x86-$LATEST_VERSION-OEM.zip *.npk
         cd ../
 
     - name: Cache install-image-${{ env.LATEST_VERSION }}.zip
@@ -128,79 +128,10 @@ jobs:
         sudo umount /dev/nbd0
         sudo qemu-nbd -d /dev/nbd0
         sudo rm -rf install-image/
-        sudo mv install-image-$LATEST_VERSION.img install-image-$LATEST_VERSION-patched.img
+        sudo mv install-image-$LATEST_VERSION.img install-image-$LATEST_VERSION-OEM.img
+        sudo zip install-image-$LATEST_VERSION-OEM.img.zip install-image-$LATEST_VERSION-OEM.img
 
-        sudo qemu-img convert -f raw -O qcow2 install-image-$LATEST_VERSION-patched.img install-image-$LATEST_VERSION-patched.qcow2
-        sudo qemu-img convert -f raw -O vmdk install-image-$LATEST_VERSION-patched.img install-image-$LATEST_VERSION-patched.vmdk
-        sudo qemu-img convert -f raw -O vpc install-image-$LATEST_VERSION-patched.img install-image-$LATEST_VERSION-patched.vhd
-        sudo qemu-img convert -f raw -O vhdx install-image-$LATEST_VERSION-patched.img install-image-$LATEST_VERSION-patched.vhdx
-        sudo qemu-img convert -f raw -O vdi install-image-$LATEST_VERSION-patched.img install-image-$LATEST_VERSION-patched.vdi
-
-        sudo zip install-image-$LATEST_VERSION-patched.qcow2.zip install-image-$LATEST_VERSION-patched.qcow2
-        sudo zip install-image-$LATEST_VERSION-patched.vmdk.zip install-image-$LATEST_VERSION-patched.vmdk
-        sudo zip install-image-$LATEST_VERSION-patched.vhd.zip install-image-$LATEST_VERSION-patched.vhd
-        sudo zip install-image-$LATEST_VERSION-patched.vhdx.zip install-image-$LATEST_VERSION-patched.vhdx
-        sudo zip install-image-$LATEST_VERSION-patched.vdi.zip install-image-$LATEST_VERSION-patched.vdi
-        sudo zip install-image-$LATEST_VERSION-patched.img.zip install-image-$LATEST_VERSION-patched.img
-
-        sudo rm install-image-$LATEST_VERSION-patched.qcow2
-        sudo rm install-image-$LATEST_VERSION-patched.vmdk
-        sudo rm install-image-$LATEST_VERSION-patched.vhd
-        sudo rm install-image-$LATEST_VERSION-patched.vhdx
-        sudo rm install-image-$LATEST_VERSION-patched.vdi
-        sudo rm install-image-$LATEST_VERSION-patched.img
-
-    - name: Cache chr-${{ env.LATEST_VERSION }}.zip
-      if: steps.get_latest.outputs.has_new_version == 'true'
-      id: cache_chr_img
-      uses: actions/cache@v4
-      with:
-        path: chr.img.zip
-        key: chr-${{ env.LATEST_VERSION }}-x86
-
-    - name: Get chr-${{ env.LATEST_VERSION }}.zip
-      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache_chr_img.outputs.cache-hit != 'true'
-      run: |
-          sudo curl -s -o chr.img.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/chr-$LATEST_VERSION.img.zip
-
-    - name: Patch chr-${{ env.LATEST_VERSION }}.img
-      if: steps.get_latest.outputs.has_new_version == 'true'
-      run: |
-        sudo apt-get install -y qemu-utils extlinux --no-install-recommends > /dev/null
-        sudo unzip chr.img.zip
-        sudo modprobe nbd
-        sudo qemu-nbd -c /dev/nbd0 -f raw chr-$LATEST_VERSION.img
-        sudo mkdir -p chr/{boot,routeros}
-        sudo -E python3 patch.py block /dev/nbd0p1 boot/initrd.rgz
-        sudo mount /dev/nbd0p1 chr/
-        sudo -E python3 patch.py npk chr/var/pdb/dude/image
-        sudo -E python3 patch.py npk chr/var/pdb/routeros-x86/image
-        sudo cp chr/var/pdb/routeros-x86/image all_packages/routeros-x86-$LATEST_VERSION.npk
-        sudo cp all_packages/routeros-x86-$LATEST_VERSION.npk routeros-x86-$LATEST_VERSION-patched.npk
-        sudo umount chr/
-        sudo qemu-nbd -d /dev/nbd0
-        sudo rm -rf chr/
-        sudo cp chr-$LATEST_VERSION.img chr-$LATEST_VERSION-patched.img
-
-        sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION-patched.img chr-$LATEST_VERSION-patched.qcow2
-        sudo qemu-img convert -f raw -O vmdk chr-$LATEST_VERSION-patched.img chr-$LATEST_VERSION-patched.vmdk
-        sudo qemu-img convert -f raw -O vpc chr-$LATEST_VERSION-patched.img chr-$LATEST_VERSION-patched.vhd
-        sudo qemu-img convert -f raw -O vhdx chr-$LATEST_VERSION-patched.img chr-$LATEST_VERSION-patched.vhdx
-        sudo qemu-img convert -f raw -O vdi chr-$LATEST_VERSION-patched.img chr-$LATEST_VERSION-patched.vdi
-
-        sudo zip chr-$LATEST_VERSION-patched.qcow2.zip chr-$LATEST_VERSION-patched.qcow2
-        sudo zip chr-$LATEST_VERSION-patched.vmdk.zip chr-$LATEST_VERSION-patched.vmdk
-        sudo zip chr-$LATEST_VERSION-patched.vhd.zip chr-$LATEST_VERSION-patched.vhd
-        sudo zip chr-$LATEST_VERSION-patched.vhdx.zip chr-$LATEST_VERSION-patched.vhdx
-        sudo zip chr-$LATEST_VERSION-patched.vdi.zip chr-$LATEST_VERSION-patched.vdi
-        sudo zip chr-$LATEST_VERSION-patched.img.zip chr-$LATEST_VERSION-patched.img
-
-        sudo rm chr-$LATEST_VERSION-patched.qcow2
-        sudo rm chr-$LATEST_VERSION-patched.vmdk
-        sudo rm chr-$LATEST_VERSION-patched.vhd
-        sudo rm chr-$LATEST_VERSION-patched.vhdx
-        sudo rm chr-$LATEST_VERSION-patched.vdi
-        sudo rm chr-$LATEST_VERSION-patched.img
+        sudo rm install-image-$LATEST_VERSION-OEM.img
 
     - name: Update latest version
       if: steps.get_latest.outputs.has_new_version == 'true'
@@ -221,8 +152,7 @@ jobs:
         tag_name: ${{ env.LATEST_VERSION }}
         make_latest: true
         files: |
-          mikrotik-${{ env.LATEST_VERSION }}-patched.iso
-          install-image-${{ env.LATEST_VERSION }}-patched.*.zip
-          chr-${{ env.LATEST_VERSION }}-patched.*.zip
-          routeros-x86-${{ env.LATEST_VERSION }}-patched.npk
-          all_packages-x86-${{ env.LATEST_VERSION }}-patched.zip
+          mikrotik-${{ env.LATEST_VERSION }}-OEM.iso
+          install-image-${{ env.LATEST_VERSION }}-OEM.*.zip
+          routeros-x86-${{ env.LATEST_VERSION }}-OEM.npk
+          all_packages-x86-${{ env.LATEST_VERSION }}-OEM.zip
