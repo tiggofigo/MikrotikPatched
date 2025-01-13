@@ -129,10 +129,9 @@ jobs:
         sudo qemu-nbd -d /dev/nbd0
         sudo rm -rf install-image/
         sudo mv install-image-$LATEST_VERSION.img install-image-$LATEST_VERSION-OEM.img
-        sudo zip install-image-$LATEST_VERSION-OEM.img.zip install-image-$LATEST_VERSION-OEM.img
 
         sudo rm install-image-$LATEST_VERSION-OEM.img
-
+        
     - name: Update latest version
       if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
