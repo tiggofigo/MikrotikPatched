@@ -179,7 +179,7 @@ jobs:
         name: "RouterOS ${{ env.LATEST_VERSION }}"
         body_path: "CHANGELOG"
         tag_name: ${{ env.LATEST_VERSION }}
-        make_latest: true
+        make_latest: false
         files: |
           mikrotik-${{ env.LATEST_VERSION }}-OEM.iso
           install-image-${{ env.LATEST_VERSION }}-OEM.*.zip
