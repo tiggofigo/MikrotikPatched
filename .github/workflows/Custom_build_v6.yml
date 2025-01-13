@@ -20,7 +20,7 @@ env:
   CUSTOM_LICENSE_PUBLIC_KEY: ${{ secrets.CUSTOM_LICENSE_PUBLIC_KEY }}
 
 jobs:
-  Build_ROS_v6:
+  Build_Custom_ROS_v6:
     runs-on: ubuntu-latest
 
     steps:
@@ -143,6 +143,12 @@ jobs:
         sudo qemu-nbd -d /dev/nbd0
         sudo rm -rf chr/
         
+    - name: Ensure CHANGELOG file
+      run: |
+        if [ ! -f "CHANGELOG" ]; then
+          echo "No Change Log File Found" > CHANGELOG
+        fi
+
     - name: Create Release tag ${{ env.LATEST_VERSION }}
       uses: softprops/action-gh-release@v2
       with:
@@ -155,4 +161,3 @@ jobs:
           install-image-${{ env.LATEST_VERSION }}-OEM.*.zip
           routeros-x86-${{ env.LATEST_VERSION }}-OEM.npk
           all_packages-x86-${{ env.LATEST_VERSION }}-OEM.zip
-
