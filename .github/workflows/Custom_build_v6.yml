@@ -1,12 +1,12 @@
-name: Build Custom Version v6
+name: Build Custom RouterOS v6
 
 on:
   workflow_dispatch:
     inputs:
-      INPUT_VERSION:
-        description: 'Input VERSION CODE (e.g., 6.49.11)'
+      latest_version:
+        description: 'RouterOS version to process'
         required: true
-        default: '6.49.11'
+        default: '6.49.7'
 
 permissions:
   contents: write
@@ -18,10 +18,9 @@ env:
   CUSTOM_NPK_SIGN_PUBLIC_KEY: ${{ secrets.CUSTOM_NPK_SIGN_PUBLIC_KEY }}
   CUSTOM_LICENSE_PRIVATE_KEY: ${{ secrets.CUSTOM_LICENSE_PRIVATE_KEY }}
   CUSTOM_LICENSE_PUBLIC_KEY: ${{ secrets.CUSTOM_LICENSE_PUBLIC_KEY }}
-  LATEST_VERSION: "${{ github.event.inputs.INPUT_VERSION }}"
 
 jobs:
-  Build_Custom_ROS_v6:
+  Build_ROS_v6:
     runs-on: ubuntu-latest
 
     steps:
@@ -33,28 +32,12 @@ jobs:
       with:
         python-version: '3.x'
 
-    - name: Get latest version
-      id: get_latest
+    - name: Set Version
       run: |
-        echo $(uname -a)
-        LATEST_VERSION="${{ github.event.inputs.INPUT_VERSION }}"
-        echo Latest Version:$LATEST_VERSION
-        if [ "${{ github.event_name }}" == "schedule" ]; then
-          _LATEST_VERSION="${{ github.event.inputs.INPUT_VERSION }}"
-          if [ "$_LATEST_VERSION" == "$LATEST_VERSION" ]; then
-            echo "No new version found"
-            echo "has_new_version=false" >> $GITHUB_OUTPUT
-            exit 0
-        fi
-        echo "has_new_version=true" >> $GITHUB_OUTPUT
-        curl -s -o CHANGELOG https://upgrade.mikrotik.com/routeros/$LATEST_VERSION/CHANGELOG
-        cat CHANGELOG
-        echo "NEWEST=${NEWEST}" >> $GITHUB_ENV
+        LATEST_VERSION="${{ github.event.inputs.latest_version }}"
         echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
-        sudo apt-get update > /dev/null
 
     - name: Cache mikrotik-${{ env.LATEST_VERSION }}.iso
-      if: steps.get_latest.outputs.has_new_version == 'true'
       id: cache_mikrotik
       uses: actions/cache@v4
       with:
@@ -62,12 +45,11 @@ jobs:
         key: mikrotik-${{ env.LATEST_VERSION }}-x86
 
     - name: Get mikrotik-${{ env.LATEST_VERSION }}.iso
-      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache_mikrotik.outputs.cache-hit != 'true'
+      if: steps.cache_mikrotik.outputs.cache-hit != 'true'
       run: |
         sudo curl -s -o mikrotik.iso https://download.mikrotik.com/routeros/$LATEST_VERSION/mikrotik-$LATEST_VERSION.iso
 
     - name: Patch mikrotik-${{ env.LATEST_VERSION }}.iso
-      if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
         sudo apt-get install -y mkisofs xorriso --no-install-recommends > /dev/null
         sudo mkdir iso
@@ -102,7 +84,6 @@ jobs:
         cd ../
 
     - name: Cache install-image-${{ env.LATEST_VERSION }}.zip
-      if: steps.get_latest.outputs.has_new_version == 'true'
       id: cache_install_image
       uses: actions/cache@v4
       with:
@@ -110,12 +91,11 @@ jobs:
         key: install-image-${{ env.LATEST_VERSION }}-x86
 
     - name: Get install-image-${{ env.LATEST_VERSION }}.zip
-      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache_install_image.outputs.cache-hit != 'true'
+      if: steps.cache_install_image.outputs.cache-hit != 'true'
       run: |
         sudo curl -s -o install-image.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/install-image-$LATEST_VERSION.zip
 
     - name: Patch install-image-${{ env.LATEST_VERSION }}.img
-      if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
         sudo apt-get install -y qemu-utils extlinux --no-install-recommends > /dev/null
         sudo unzip install-image.zip
@@ -134,9 +114,8 @@ jobs:
         sudo mv install-image-$LATEST_VERSION.img install-image-$LATEST_VERSION-OEM.img
         sudo zip install-image-$LATEST_VERSION-OEM.img.zip install-image-$LATEST_VERSION-OEM.img
         sudo rm install-image-$LATEST_VERSION-OEM.img
-        
+
     - name: Cache chr-${{ env.LATEST_VERSION }}.zip
-      if: steps.get_latest.outputs.has_new_version == 'true'
       id: cache_chr_img
       uses: actions/cache@v4
       with:
@@ -144,12 +123,11 @@ jobs:
         key: chr-${{ env.LATEST_VERSION }}-x86
 
     - name: Get chr-${{ env.LATEST_VERSION }}.zip
-      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache_chr_img.outputs.cache-hit != 'true'
+      if: steps.cache_chr_img.outputs.cache-hit != 'true'
       run: |
           sudo curl -s -o chr.img.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/chr-$LATEST_VERSION.img.zip
 
     - name: Patch chr-${{ env.LATEST_VERSION }}.img
-      if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
         sudo apt-get install -y qemu-utils extlinux --no-install-recommends > /dev/null
         sudo unzip chr.img.zip
