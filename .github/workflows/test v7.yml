@@ -1,4 +1,4 @@
-name: Test Custom RouterOS v7
+name: Build Custom RouterOS v7
 
 on:
   workflow_dispatch:
@@ -18,131 +18,79 @@ env:
   CUSTOM_NPK_SIGN_PUBLIC_KEY: ${{ secrets.CUSTOM_NPK_SIGN_PUBLIC_KEY }}
   CUSTOM_LICENSE_PRIVATE_KEY: ${{ secrets.CUSTOM_LICENSE_PRIVATE_KEY }}
   CUSTOM_LICENSE_PUBLIC_KEY: ${{ secrets.CUSTOM_LICENSE_PUBLIC_KEY }}
-  LATEST_VERSION: "${{ github.event.inputs.INPUT_VERSION }}"
 
 jobs:
-  Build_Custom_ROS_v7:
+  Build_Custom_ROS:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repository
+    - name: Checkout Source
       uses: actions/checkout@v4
 
-    - name: Setup Python
+    - name: Setup Python Environment
       uses: actions/setup-python@v5
       with:
         python-version: '3.x'
 
-    - name: Get and Validate Version
-      id: validate_version
+    - name: Fetch and Patch RouterOS ISO
       run: |
-        LATEST_VERSION="${{ github.event.inputs.INPUT_VERSION }}"
-        echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
-        wget -q --spider https://download.mikrotik.com/routeros/$LATEST_VERSION/CHANGELOG || exit 1
-        echo "has_new_version=true" >> $GITHUB_OUTPUT
+        INPUT_VERSION=${{ github.event.inputs.INPUT_VERSION }}
+        ARCH="x86" # Fixed architecture for simplicity
 
-    - name: Cache Required Files
-      uses: actions/cache@v4
-      with:
-        path: |
-          mikrotik-${{ env.LATEST_VERSION }}.iso
-          install-image-${{ env.LATEST_VERSION }}.zip
-          all_packages-${{ env.LATEST_VERSION }}.zip
-        key: mikrotik-${{ env.LATEST_VERSION }}
+        echo "Using RouterOS version: $INPUT_VERSION"
+        sudo apt-get update -y > /dev/null
+        sudo apt-get install -y mkisofs xorriso zip > /dev/null
 
-    - name: Download Required Files
-      if: steps.validate_version.outputs.has_new_version == 'true'
-      run: |
-        wget -q -O mikrotik-${{ env.LATEST_VERSION }}.iso https://download.mikrotik.com/routeros/${{ env.LATEST_VERSION }}/mikrotik-${{ env.LATEST_VERSION }}.iso
-        wget -q -O install-image-${{ env.LATEST_VERSION }}.zip https://download.mikrotik.com/routeros/${{ env.LATEST_VERSION }}/install-image-${{ env.LATEST_VERSION }}.zip
-        wget -q -O all_packages-${{ env.LATEST_VERSION }}.zip https://download.mikrotik.com/routeros/${{ env.LATEST_VERSION }}/all_packages-${{ env.LATEST_VERSION }}.zip
+        # Download ISO
+        echo "Downloading RouterOS ISO..."
+        sudo curl -s -o mikrotik.iso "https://download.mikrotik.com/routeros/$INPUT_VERSION/mikrotik-$INPUT_VERSION.iso"
 
-    - name: Patch RouterOS ISO
-      if: steps.validate_version.outputs.has_new_version == 'true'
-      run: |
-        sudo apt-get update -y && sudo apt-get install -y mkisofs xorriso unzip qemu-utils
-        sudo mkdir -p iso new_iso efiboot
+        # Prepare ISO for patching
+        echo "Patching RouterOS ISO..."
+        sudo mkdir iso new_iso
+        sudo mount -o loop,ro mikrotik.iso iso/
+        sudo rsync -a iso/ new_iso/
+        sudo umount iso/
+        sudo rm -rf iso/
 
-        # Mount and patch ISO
-        sudo mount -o loop mikrotik-${{ env.LATEST_VERSION }}.iso iso
-        sudo cp -r iso/* new_iso
-        sudo umount iso
+        # Patch NPK files
+        NPK_FILES=$(find new_iso/*.npk)
+        for file in $NPK_FILES; do
+          sudo -E python3 patch.py npk $file
+        done
 
-        # Patch kernel
-        sudo mount -o loop new_iso/efiboot.img efiboot
-        sudo -E python3 patch.py kernel efiboot/linux.x86_64
-        sudo cp efiboot/linux.x86_64 new_iso/isolinux/linux
-        sudo umount efiboot
+        # Copy patched routeros.npk
+        sudo cp new_iso/routeros-$INPUT_VERSION.npk routeros-$INPUT_VERSION.npk
 
-        # Create patched ISO
-        sudo mkisofs -o mikrotik-${{ env.LATEST_VERSION }}-OEM.iso \
-                     -V "MikroTik ${{ env.LATEST_VERSION }}" \
-                     -sysid "" -preparer "MikroTik" \
+        # Recreate ISO
+        sudo mkisofs -o mikrotik-$INPUT_VERSION.iso \
+                     -V "MikroTik $INPUT_VERSION" \
+                     -sysid "" -preparer "MiKroTiK" \
+                     -publisher "" -A "MiKroTiK RouterOS" \
                      -input-charset utf-8 \
                      -b isolinux/isolinux.bin \
                      -c isolinux/boot.cat \
                      -no-emul-boot \
                      -boot-load-size 4 \
                      -boot-info-table \
-                     -eltorito-alt-boot \
-                     -e efiboot.img \
-                     -no-emul-boot \
                      -R -J \
-                     new_iso
-
-        sudo rm -rf iso new_iso efiboot
-
-    - name: Patch Install Image
-      if: steps.validate_version.outputs.has_new_version == 'true'
-      run: |
-        sudo unzip install-image-${{ env.LATEST_VERSION }}.zip
-        sudo modprobe nbd
-        sudo qemu-nbd -c /dev/nbd0 -f raw install-image-${{ env.LATEST_VERSION }}.img
-        sudo mkdir install_image
-        sudo mount /dev/nbd0 install_image/
-
-        # Patch EFI bootloader
-        wget -q -O refind-bin.zip https://nchc.dl.sourceforge.net/project/refind/0.14.2/refind-bin-0.14.2.zip
-        sudo unzip refind-bin.zip refind-bin-0.14.2/refind/refind_x64.efi
-        sudo cp refind-bin-0.14.2/refind/refind_x64.efi install_image/EFI/BOOT/BOOTX64.EFI
-
-        # Patch kernel and .npk files
-        sudo -E python3 patch.py kernel install_image/linux
-        for file in $(find install_image/*.npk); do
-          sudo -E python3 patch.py npk $file
-        done
-
-        sudo umount /dev/nbd0
-        sudo qemu-nbd -d /dev/nbd0
-        sudo rm -rf install_image refind-bin.zip
-
-        # Create patched install image
-        sudo zip install-image-${{ env.LATEST_VERSION }}-OEM.zip install-image-${{ env.LATEST_VERSION }}.img
-
-    - name: Patch All Packages
-      if: steps.validate_version.outputs.has_new_version == 'true'
-      run: |
+                     new_iso/
+        
+        # Create additional package zip
         sudo mkdir all_packages
-        sudo unzip all_packages-${{ env.LATEST_VERSION }}.zip -d all_packages
-        for file in $(find all_packages/*.npk); do
-          sudo -E python3 patch.py npk $file
-        done
+        sudo cp new_iso/*.npk all_packages/
+        sudo zip all_packages-$INPUT_VERSION.zip all_packages/*.npk
 
-        # Recreate patched all_packages.zip
-        cd all_packages
-        sudo zip ../all_packages-${{ env.LATEST_VERSION }}-OEM.zip *.npk
-        cd ..
-        sudo rm -rf all_packages
+        # Cleanup
+        sudo rm -rf new_iso/ all_packages/
 
-    - name: Create Release
-      if: steps.validate_version.outputs.has_new_version == 'true'
+    - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        name: "RouterOS ${{ env.LATEST_VERSION }}"
-        body_path: "CHANGELOG"
-        tag_name: ${{ env.LATEST_VERSION }}
-        make_latest: false
+        name: "RouterOS ${{ github.event.inputs.INPUT_VERSION }}"
+        body: "Custom RouterOS build for version ${{ github.event.inputs.INPUT_VERSION }}."
+        tag_name: "${{ github.event.inputs.INPUT_VERSION }}"
         files: |
-          mikrotik-${{ env.LATEST_VERSION }}-OEM.iso
-          install-image-${{ env.LATEST_VERSION }}-OEM.zip
-          all_packages-${{ env.LATEST_VERSION }}-OEM.zip
+          mikrotik-${{ github.event.inputs.INPUT_VERSION }}.iso
+          routeros-${{ github.event.inputs.INPUT_VERSION }}.npk
+          all_packages-${{ github.event.inputs.INPUT_VERSION }}.zip
