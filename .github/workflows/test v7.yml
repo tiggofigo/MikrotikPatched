@@ -32,14 +32,14 @@ jobs:
       with:
         python-version: '3.x'
 
-    - name: Fetch and Patch RouterOS ISO
+    - name: Fetch and Patch RouterOS ISO and Install Image
       run: |
         INPUT_VERSION=${{ github.event.inputs.INPUT_VERSION }}
         ARCH="x86" # Fixed architecture for simplicity
 
         echo "Using RouterOS version: $INPUT_VERSION"
         sudo apt-get update -y > /dev/null
-        sudo apt-get install -y mkisofs xorriso zip > /dev/null
+        sudo apt-get install -y mkisofs xorriso zip qemu-utils extlinux > /dev/null
 
         # Download ISO
         echo "Downloading RouterOS ISO..."
@@ -75,11 +75,31 @@ jobs:
                      -boot-info-table \
                      -R -J \
                      new_iso/
-        
+
         # Create additional package zip
         sudo mkdir all_packages
         sudo cp new_iso/*.npk all_packages/
         sudo zip all_packages-$INPUT_VERSION.zip all_packages/*.npk
+
+        # Download and Patch Install Image
+        echo "Downloading and Patching Install Image..."
+        sudo curl -s -o install-image.zip "https://download.mikrotik.com/routeros/$INPUT_VERSION/install-image-$INPUT_VERSION.zip"
+        sudo unzip install-image.zip
+        sudo modprobe nbd
+        sudo qemu-nbd -c /dev/nbd0 -f raw install-image-$INPUT_VERSION.img
+        sudo mkdir install-image
+        sudo mount /dev/nbd0 install-image/
+
+        sudo -E python3 patch.py kernel install-image/linux
+        NPK_FILES=$(find install-image/*.npk)
+        for file in $NPK_FILES; do
+          sudo -E python3 patch.py npk $file
+        done
+
+        sudo umount /dev/nbd0
+        sudo qemu-nbd -d /dev/nbd0
+        sudo rm -rf install-image/
+        sudo zip install-image-$INPUT_VERSION.zip install-image-$INPUT_VERSION.img
 
         # Cleanup
         sudo rm -rf new_iso/ all_packages/
@@ -94,3 +114,4 @@ jobs:
           mikrotik-${{ github.event.inputs.INPUT_VERSION }}.iso
           routeros-${{ github.event.inputs.INPUT_VERSION }}.npk
           all_packages-${{ github.event.inputs.INPUT_VERSION }}.zip
+          install-image-${{ github.event.inputs.INPUT_VERSION }}.zip
