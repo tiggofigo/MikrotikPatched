@@ -29,16 +29,21 @@ jobs:
         }
       shell: pwsh
 
-
     - name: Build 32-bit Executable
       run: |
-        mkdir -p "dist/License Keys" # Create target folder for the executable
-        pyinstaller --onefile --noconsole --platform=win32 license.py
-        move "dist\license.exe" "dist\License Keys\license.exe"
+        mkdir -p "dist/License Keys" # Ensure the target directory exists
+        pyinstaller --onefile --noconsole license.py
+      shell: pwsh
 
     - name: Verify Build Output
       run: |
-        dir "dist\License Keys" # List the contents of the output directory to confirm
+        if (-Not (Test-Path "dist/license.exe")) {
+          Write-Error "Executable not found! Build failed."
+          exit 1
+        }
+        mkdir -p "dist/License Keys"
+        Move-Item "dist/license.exe" "dist/License Keys/license.exe"
+      shell: pwsh
 
     - name: Upload Executable to Repository
       run: |
@@ -47,6 +52,7 @@ jobs:
         git add "dist/License Keys/license.exe"
         git commit -m "Add generated executable: License Keys/license.exe"
         git push
+      shell: pwsh
 
     - name: Upload Executable as Artifact
       uses: actions/upload-artifact@v3
