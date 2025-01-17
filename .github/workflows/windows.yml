@@ -31,17 +31,17 @@ jobs:
 
     - name: Build 32-bit Executable
       run: |
-        mkdir -p "dist/License Keys" # Ensure the target directory exists
+        New-Item -ItemType Directory -Path "dist/License Keys" -Force
         pyinstaller --onefile --noconsole license.py
       shell: pwsh
 
-    - name: Verify Build Output
+    - name: Verify and Move Build Output
       run: |
         if (-Not (Test-Path "dist/license.exe")) {
           Write-Error "Executable not found! Build failed."
           exit 1
         }
-        mkdir -p "dist/License Keys"
+        New-Item -ItemType Directory -Path "dist/License Keys" -Force
         Move-Item "dist/license.exe" "dist/License Keys/license.exe"
       shell: pwsh
 
