@@ -44,21 +44,7 @@ jobs:
         echo "NEWEST=${NEWEST}" >> $GITHUB_ENV
         echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
         if [ "${{ matrix.arch }}" == "x86" ]; then
-          ARCH=''
-        elif [ "${{ matrix.arch }}" == "arm" ]; then
-          ARCH='-arm'
-        elif [ "${{ matrix.arch }}" == "arm64" ]; then
-          ARCH='-arm64'
-        elif [ "${{ matrix.arch }}" == "mipsbe" ]; then
-          ARCH='-mipsbe'
-        elif [ "${{ matrix.arch }}" == "mmips" ]; then
-          ARCH='-mmips'
-        elif [ "${{ matrix.arch }}" == "smips" ]; then
-          ARCH='-smips'
-        elif [ "${{ matrix.arch }}" == "tile" ]; then
-          ARCH='-tile'
-        elif [ "${{ matrix.arch }}" == "ppc" ]; then
-          ARCH='-ppc'
+          ARCH='x86'
         fi
         echo "ARCH=$ARCH" >> $GITHUB_ENV
         sudo apt-get update > /dev/null
