@@ -74,8 +74,8 @@ jobs:
     - name: Get routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk & all_packages${{ env.ARCH }}-${{ env.LATEST_VERSION }}.zip
       if:  steps.cache_routeros_npk.outputs.cache-hit != 'true' && matrix.arch == 'x86'
       run: |
-          sudo curl -s -o routeros-$LATEST_VERSION$ARCH.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION$ARCH.npk
-          sudo curl -s -o all_packages$ARCH-$LATEST_VERSION.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/all_packages$ARCH-$LATEST_VERSION.zip
+          sudo curl -s -o routeros-$LATEST_VERSION$ARCH.npk https://download.mikrotik.com/routeros/7.9.2/routeros-7.9.2.npk
+          sudo curl -s -o all_packages$ARCH-$LATEST_VERSION.zip https://download.mikrotik.com/routeros/7.9.2/all_packages-x86-7.9.2.zip
 
     - name: Patch routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk & all_packages${{ env.ARCH }}-${{ env.LATEST_VERSION }}.zip
       if:  matrix.arch == 'x86'
