@@ -37,7 +37,7 @@ jobs:
         BUILD_TIME=$(echo "$NEWEST" | cut -d' ' -f2)
         echo Latest Version: 7.9.2
         echo Build Time: $BUILD_TIME
-        _LATEST_VERSION=$(cat latest7.txt | cut -d ' ' -f1)
+        _LATEST_VERSION=$(cat latest.txt | cut -d ' ' -f1)
         if [ "$_LATEST_VERSION" == "7.9.2" ]; then
           echo "No new version found"
           echo "has_new_version=false" >> $GITHUB_OUTPUT
@@ -223,10 +223,10 @@ jobs:
     - name: Update latest version
       if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
       run: |
-        echo $NEWEST > latest7.txt
+        echo $NEWEST > latest.txt
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git add latest7.txt
+        git add latest.txt
         git commit -m "Update latest version"
         git push
 
