@@ -149,7 +149,6 @@ jobs:
         cd ../
 
     - name: Cache refind
-      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
       id: cache_refind
       uses: actions/cache@v4
       with:
@@ -194,35 +193,37 @@ jobs:
         sudo mv install-image-$LATEST_VERSION.img install-image-$LATEST_VERSION$ARCH-OEM.img
         sudo zip install-image-$LATEST_VERSION$ARCH-OEM.img.zip install-image-$LATEST_VERSION$ARCH-OEM.img
 
-    - name: Cache routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk & all_packages${{ env.ARCH }}-${{ env.LATEST_VERSION }}.zip
-      id: cache_routeros_npk
-      uses: actions/cache@v4
-      with:
-        path: |
-          routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk
-          all_packages${{ env.ARCH }}-${{ env.LATEST_VERSION }}.zip
-        key: routeros-${{ env.LATEST_VERSION }}-${{ matrix.arch }}
+          - name: Cache routeros files
+        id: cache_routeros_npk
+        uses: actions/cache@v4
+        with:
+          path: |
+            routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk
+            all_packages${{ env.ARCH }}-${{ env.LATEST_VERSION }}.zip
+          key: routeros-${{ env.LATEST_VERSION }}-${{ env.ARCH }}
 
-    - name: Get routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk & all_packages${{ env.ARCH }}-${{ env.LATEST_VERSION }}.zip
-      run: |
-        sudo curl -s -o routeros-$LATEST_VERSION$ARCH.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION$ARCH.npk
-        sudo curl -s -o all_packages$ARCH-$LATEST_VERSION.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/all_packages$ARCH-$LATEST_VERSION.zip
+    - name: Download routeros files
+        run:|
+          set -x
+          sudo curl -f -s -o routeros-$LATEST_VERSION$ARCH.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION$ARCH.npk || { echo "Failed to download NPK"; exit 1; }
+          sudo curl -f -s -o all_packages$ARCH-$LATEST_VERSION.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/all_packages$ARCH-$LATEST_VERSION.zip || { echo "Failed to download ZIP"; exit 1; }
+          unzip -tq all_packages$ARCH-$LATEST_VERSION.zip || { echo "Invalid ZIP file"; exit 1; }
 
-    - name: Patch routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk & all_packages${{ env.ARCH }}-${{ env.LATEST_VERSION }}.zip
-      run: |
-        sudo mkdir all_packages$ARCH-$LATEST_VERSION
-        sudo unzip all_packages$ARCH-$LATEST_VERSION.zip -d all_packages$ARCH-$LATEST_VERSION/
-        sudo cp routeros-$LATEST_VERSION$ARCH.npk routeros-$LATEST_VERSION$ARCH-OEM.npk
-        sudo -E python3 patch.py npk routeros-$LATEST_VERSION$ARCH-OEM.npk
-        NPK_FILES=$(find all_packages$ARCH-$LATEST_VERSION/*.npk)
-        for file in $NPK_FILES; do
-          sudo -E python3 npk.py sign $file $file
-        done
-        cd all_packages$ARCH-$LATEST_VERSION/
-        sudo zip ../all_packages$ARCH-$LATEST_VERSION-OEM.zip *.npk
-        cd ..
-        sudo rm -rf all_packages$ARCH-$LATEST_VERSION/
-
+    - name: Patch routeros files
+        run:|
+          set -x
+          sudo mkdir all_packages$ARCH-$LATEST_VERSION
+          sudo unzip all_packages$ARCH-$LATEST_VERSION.zip -d all_packages$ARCH-$LATEST_VERSION/
+          sudo cp routeros-$LATEST_VERSION$ARCH.npk routeros-$LATEST_VERSION$ARCH-OEM.npk
+          sudo -E python3 patch.py npk routeros-$LATEST_VERSION$ARCH-OEM.npk
+          NPK_FILES=$(find all_packages$ARCH-$LATEST_VERSION/*.npk)
+          for file in $NPK_FILES; do
+            sudo -E python3 npk.py sign $file $file
+          done
+          cd all_packages$ARCH-$LATEST_VERSION/
+          sudo zip ../all_packages$ARCH-$LATEST_VERSION-OEM.zip *.npk
+          cd ..
+          sudo rm -rf all_packages$ARCH-$LATEST_VERSION/
     - name: Create Release tag ${{ env.LATEST_VERSION }}
       if: steps.get_latest.outputs.has_new_version == 'true'
       uses: softprops/action-gh-release@v2
