@@ -33,7 +33,7 @@ jobs:
       id: get_latest
       run: |
         echo $(uname -a)
-        NEWEST="7.9.2 1737390243"
+        NEWEST="7.10.1 1737390243"
         LATEST_VERSION=$(echo "$NEWEST" | cut -d' ' -f1)
         BUILD_TIME=$(echo "$NEWEST" | cut -d' ' -f2)
         echo Latest Version: $LATEST_VERSION
