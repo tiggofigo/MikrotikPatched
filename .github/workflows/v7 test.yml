@@ -1,0 +1,245 @@
+name: v7 new test
+on:
+  workflow_dispatch:
+  
+permissions:
+  contents: write
+
+env:
+  MIKRO_NPK_SIGN_PUBLIC_KEY: ${{ secrets.MIKRO_NPK_SIGN_PUBLIC_KEY }}
+  MIKRO_LICENSE_PUBLIC_KEY: ${{ secrets.MIKRO_LICENSE_PUBLIC_KEY }}
+  CUSTOM_NPK_SIGN_PRIVATE_KEY: ${{ secrets.CUSTOM_NPK_SIGN_PRIVATE_KEY }}
+  CUSTOM_NPK_SIGN_PUBLIC_KEY: ${{ secrets.CUSTOM_NPK_SIGN_PUBLIC_KEY }}
+  CUSTOM_LICENSE_PRIVATE_KEY: ${{ secrets.CUSTOM_LICENSE_PRIVATE_KEY }}
+  CUSTOM_LICENSE_PUBLIC_KEY: ${{ secrets.CUSTOM_LICENSE_PUBLIC_KEY }}
+
+jobs:
+  Build_ROS_v7:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [x86]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Check latest version
+      id: get_latest
+      run: |
+        echo $(uname -a)
+        NEWEST=$(curl -s https://upgrade.mikrotik.com/routeros/NEWESTa7.stable)
+        BUILD_TIME=$(echo "$NEWEST" | cut -d' ' -f2)
+        echo Latest Version: 7.9.2
+        echo Build Time: $BUILD_TIME
+        _LATEST_VERSION=$(cat latest7.txt | cut -d ' ' -f1)
+        if [ "$_LATEST_VERSION" == "7.9.2" ]; then
+          echo "No new version found"
+          echo "has_new_version=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        echo "has_new_version=true" >> $GITHUB_OUTPUT
+        curl -s -o CHANGELOG https://upgrade.mikrotik.com/routeros/7.9.2/CHANGELOG
+        cat CHANGELOG
+        echo "NEWEST=${NEWEST}" >> $GITHUB_ENV
+        echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
+          if [ "${{ matrix.arch }}" == "x86" ]; then
+          ARCH=''
+        elif [ "${{ matrix.arch }}" == "arm" ]; then
+          ARCH='-arm'
+        elif [ "${{ matrix.arch }}" == "arm64" ]; then
+          ARCH='-arm64'
+        elif [ "${{ matrix.arch }}" == "mipsbe" ]; then
+          ARCH='-mipsbe'
+        elif [ "${{ matrix.arch }}" == "mmips" ]; then
+          ARCH='-mmips'
+        elif [ "${{ matrix.arch }}" == "smips" ]; then
+          ARCH='-smips'
+        elif [ "${{ matrix.arch }}" == "tile" ]; then
+          ARCH='-tile'
+        elif [ "${{ matrix.arch }}" == "ppc" ]; then
+          ARCH='-ppc'
+        fi
+        echo "ARCH=$ARCH" >> $GITHUB_ENV
+        sudo apt-get update > /dev/null
+
+    - name: Cache mikrotik-7.9.2${{ env.ARCH }}.iso
+      if: steps.get_latest.outputs.has_new_version == 'true' && (matrix.arch == 'x86' || matrix.arch == 'arm64')
+      id: cache_mikrotik
+      uses: actions/cache@v4
+      with:
+        path: mikrotik.iso
+        key: mikrotik-7.9.2-${{ matrix.arch }}
+
+    - name: Get mikrotik-7.9.2${{ env.ARCH }}.iso
+      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache_mikrotik.outputs.cache-hit != 'true' && (matrix.arch == 'x86' || matrix.arch == 'arm64')
+      run: |
+        sudo curl -s -o mikrotik.iso https://download.mikrotik.com/routeros/7.9.2/mikrotik-7.9.2$ARCH.iso
+
+    - name: Patch mikrotik-7.9.2${{ env.ARCH }}.iso
+      if: steps.get_latest.outputs.has_new_version == 'true' && (matrix.arch == 'x86' || matrix.arch == 'arm64')
+      run: |
+        sudo apt-get install -y mkisofs xorriso --no-install-recommends > /dev/null
+        sudo mkdir iso
+        sudo mount -o loop,ro mikrotik.iso iso/
+        sudo mkdir new_iso
+        sudo cp -r iso/* new_iso/
+        sudo rsync -a iso/ new_iso/
+        sudo umount iso/
+        sudo rm -rf iso/
+        NPK_FILES=$(find new_iso/*.npk)
+        for file in $NPK_FILES; do
+          sudo -E python3 patch.py npk $file
+        done
+        sudo cp new_iso/routeros-7.9.2*.npk routeros-7.9.2$ARCH-OEM.npk
+        sudo mkdir efiboot
+        sudo mount -o loop new_iso/efiboot.img efiboot/
+        if [ "${{ matrix.arch }}" == "x86" ]; then
+          sudo -E python3 patch.py kernel efiboot/linux.x86_64
+          sudo cp efiboot/linux.x86_64 new_iso/isolinux/linux
+          sudo umount efiboot/
+          sudo mkisofs -o mikrotik-7.9.2$ARCH-OEM.iso \
+                       -V "MikroTik 7.9.2 $ARCH" \
+                       -sysid "" -preparer "MiKroTiK" \
+                       -publisher "" -A "MiKroTiK RouterOS" \
+                       -input-charset utf-8 \
+                       -b isolinux/isolinux.bin \
+                       -c isolinux/boot.cat \
+                       -no-emul-boot \
+                       -boot-load-size 4 \
+                       -boot-info-table \
+                       -eltorito-alt-boot \
+                       -e efiboot.img \
+                       -no-emul-boot \
+                       -R -J \
+                       new_iso/
+        elif [ "${{ matrix.arch }}" == "arm64" ]; then
+          sudo -E python3 patch.py kernel efiboot/EFI/BOOT/BOOTAA64.EFI
+          sudo umount efiboot/
+          sudo xorriso -as mkisofs -o mikrotik-7.9.2$ARCH-OEM.iso \
+                       -V "MikroTik 7.9.2 ${{ matrix.arch }}" \
+                       -sysid "" -preparer "MiKroTiK" \
+                       -publisher "" -A "MiKroTiK RouterOS" \
+                       -input-charset utf-8 \
+                       -b efiboot.img \
+                       -no-emul-boot \
+                       -R -J \
+                       new_iso/
+        fi
+        sudo rm -rf efiboot/
+        sudo mkdir all_packages_iso$ARCH-7.9.2
+        sudo cp new_iso/*.npk all_packages_iso$ARCH-7.9.2/
+        sudo rm -rf new_iso/
+        cd all_packages_iso$ARCH-7.9.2/
+        sudo zip ../all_packages$ARCH-7.9.2-OEM.zip *.npk
+        cd ../
+
+    - name: Cache refind
+      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
+      id: cache_refind
+      uses: actions/cache@v4
+      with:
+        path: refind-bin-0.14.2.zip
+        key: refind
+
+    - name: Get refind
+      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache_refind.outputs.cache-hit != 'true' && matrix.arch == 'x86'
+      run: |
+        sudo curl -s -o refind-bin-0.14.2.zip https://nchc.dl.sourceforge.net/project/refind/0.14.2/refind-bin-0.14.2.zip
+
+    - name: Cache install-image-7.9.2${{ env.ARCH }}.zip
+      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
+      id: cache_install_image
+      uses: actions/cache@v4
+      with:
+        path: install-image.zip
+        key: install-image-7.9.2-${{ matrix.arch }}
+
+    - name: Get install-image-7.9.2${{ env.ARCH }}.zip
+      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache_install_image.outputs.cache-hit != 'true' && matrix.arch == 'x86'
+      run: |
+        sudo curl -s -o install-image.zip https://download.mikrotik.com/routeros/7.9.2/install-image-7.9.2.zip
+
+    - name: Patch install-image-7.9.2${{ env.ARCH }}.img
+      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
+      run: |
+        sudo apt-get install -y qemu-utils extlinux --no-install-recommends > /dev/null
+        sudo unzip install-image.zip
+        sudo modprobe nbd
+        sudo qemu-nbd -c /dev/nbd0 -f raw install-image-7.9.2.img
+        sudo mkdir install-image
+        sudo mount /dev/nbd0 install-image/
+        sudo unzip refind-bin-0.14.2.zip refind-bin-0.14.2/refind/refind_x64.efi
+        sudo cp refind-bin-0.14.2/refind/refind_x64.efi install-image/EFI/BOOT/BOOTX64.EFI
+        sudo rm -rf refind-bin-0.14.2
+        sudo -E python3 patch.py kernel install-image/linux
+        NPK_FILES=$(find install-image/*.npk)
+        for file in $NPK_FILES; do
+          sudo -E python3 patch.py npk $file
+        done
+        sudo umount /dev/nbd0
+        sudo qemu-nbd -d /dev/nbd0
+        sudo rm -rf install-image/
+        sudo mv install-image-7.9.2.img install-image-7.9.2$ARCH-OEM.img
+        sudo zip install-image-7.9.2$ARCH-OEM.img.zip install-image-7.9.2$ARCH-OEM.img
+
+    - name: Cache routeros-7.9.2${{ env.ARCH }}.npk & all_packages${{ env.ARCH }}-7.9.2.zip
+      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch != 'x86'
+      id: cache_routeros_npk
+      uses: actions/cache@v4
+      with:
+        path: |
+          routeros-7.9.2${{ env.ARCH }}.npk
+          all_packages${{ env.ARCH }}-7.9.2.zip
+        key: routeros-7.9.2-${{ matrix.arch }}
+
+    - name: Get routeros-7.9.2${{ env.ARCH }}.npk & all_packages${{ env.ARCH }}-7.9.2.zip
+      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache_routeros_npk.outputs.cache-hit != 'true' && matrix.arch != 'x86'
+      run: |
+        sudo curl -s -o routeros-7.9.2$ARCH.npk https://download.mikrotik.com/routeros/7.9.2/routeros-7.9.2$ARCH.npk
+        sudo curl -s -o all_packages$ARCH-7.9.2.zip https://download.mikrotik.com/routeros/7.9.2/all_packages$ARCH-7.9.2.zip
+
+    - name: Patch routeros-7.9.2${{ env.ARCH }}.npk & all_packages${{ env.ARCH }}-7.9.2.zip
+      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch != 'x86'
+      run: |
+        sudo mkdir all_packages$ARCH-7.9.2
+        sudo unzip all_packages$ARCH-7.9.2.zip -d all_packages$ARCH-7.9.2/
+        sudo cp routeros-7.9.2$ARCH.npk routeros-7.9.2$ARCH-OEM.npk
+        sudo -E python3 patch.py npk routeros-7.9.2$ARCH-OEM.npk
+        NPK_FILES=$(find all_packages$ARCH-7.9.2/*.npk)
+        for file in $NPK_FILES; do
+          sudo -E python3 npk.py sign $file $file
+        done
+        cd all_packages$ARCH-7.9.2/
+        sudo zip ../all_packages$ARCH-7.9.2-OEM.zip *.npk
+        cd ..
+        sudo rm -rf all_packages$ARCH-7.9.2/
+
+    - name: Update latest version
+      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
+      run: |
+        echo $NEWEST > latest7.txt
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add latest7.txt
+        git commit -m "Update latest version"
+        git push
+
+    - name: Create Release tag 7.9.2
+      if: steps.get_latest.outputs.has_new_version == 'true'
+      uses: softprops/action-gh-release@v2
+      with:
+        name: "RouterOS 7.9.2"
+        body_path: "CHANGELOG"
+        tag_name: 7.9.2
+        make_latest: true
+        files: |
+          mikrotik-7.9.2${{ env.ARCH }}-OEM.iso
+          install-image-7.9.2${{ env.ARCH }}-OEM.*.zip
+          routeros-7.9.2${{ env.ARCH }}-OEM.npk
+          all_packages*-7.9.2-OEM.zip
