@@ -33,18 +33,12 @@ jobs:
       id: get_latest
       run: |
         echo $(uname -a)
-        NEWEST="7.9.2 1737390253"
+        NEWEST="7.9.2 1684842540"
         LATEST_VERSION=$(echo "$NEWEST" | cut -d' ' -f1)
         BUILD_TIME=$(echo "$NEWEST" | cut -d' ' -f2)
         echo Latest Version: $LATEST_VERSION
         echo Build Time: $BUILD_TIME
         _LATEST_VERSION=$(cat latest.txt | cut -d ' ' -f1)
-        if [ "$_LATEST_VERSION" == "$LATEST_VERSION" ]; then
-          echo "No new version found"
-          echo "has_new_version=false" >> $GITHUB_OUTPUT
-          exit 0
-        fi
-        echo "has_new_version=true" >> $GITHUB_OUTPUT
         curl -s -o CHANGELOG https://upgrade.mikrotik.com/routeros/$LATEST_VERSION/CHANGELOG
         cat CHANGELOG
         echo "NEWEST=${NEWEST}" >> $GITHUB_ENV
@@ -70,7 +64,7 @@ jobs:
         sudo apt-get update > /dev/null
 
     - name: Cache refind
-      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
+      if:  matrix.arch == 'x86'
       id: cache_refind
       uses: actions/cache@v4
       with:
@@ -78,11 +72,11 @@ jobs:
         key: refind
 
     - name: Get refind
-      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache_refind.outputs.cache-hit != 'true' && matrix.arch == 'x86'
+      if:  steps.cache_refind.outputs.cache-hit != 'true' && matrix.arch == 'x86'
       run: sudo curl -s -o refind-bin-0.14.2.zip https://nchc.dl.sourceforge.net/project/refind/0.14.2/refind-bin-0.14.2.zip
 
     - name: Cache routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk & all_packages-${{ env.ARCH }}-${{ env.LATEST_VERSION }}.zip
-      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch != 'x86'
+      if:  matrix.arch != 'x86'
       id: cache_routeros_npk
       uses: actions/cache@v4
       with:
@@ -92,13 +86,13 @@ jobs:
         key: routeros-${{ env.LATEST_VERSION }}-${{ matrix.arch }}
 
     - name: Get routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk & all_packages-${{ env.ARCH }}-${{ env.LATEST_VERSION }}.zip
-      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache_routeros_npk.outputs.cache-hit != 'true' && matrix.arch != 'x86'
+      if:  steps.cache_routeros_npk.outputs.cache-hit != 'true' && matrix.arch != 'x86'
       run: |
           sudo curl -s -o routeros-$LATEST_VERSION$ARCH.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION$ARCH.npk
           sudo curl -s -o all_packages-$ARCH-$LATEST_VERSION.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/all_packages-$ARCH-$LATEST_VERSION.zip
 
     - name: Patch routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk & all_packages-${{ env.ARCH }}-${{ env.LATEST_VERSION }}.zip
-      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch != 'x86'
+      if:  matrix.arch != 'x86'
       run: |
         sudo mkdir ./all_packages-$ARCH-$LATEST_VERSION
         sudo unzip all_packages-$ARCH-$LATEST_VERSION.zip -d ./all_packages-$ARCH-$LATEST_VERSION/
