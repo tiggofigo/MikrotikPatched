@@ -1,4 +1,4 @@
-name: Build RouterOS v7
+name: v7 Test
 
 on:
   workflow_dispatch:
