@@ -209,14 +209,14 @@ jobs:
       run: |
         sudo mkdir all_packages$ARCH-7.9.2
         sudo unzip all_packages$ARCH-7.9.2.zip -d all_packages$ARCH-7.9.2/
-        sudo cp routeros-7.9.2$ARCH.npk routeros-7.9.2$ARCH-OEM.npk
-        sudo -E python3 patch.py npk routeros-7.9.2$ARCH-OEM.npk
+        sudo cp routeros-7.9.2$ARCH.npk routeros-7.9.2$ARCH-patched.npk
+        sudo -E python3 patch.py npk routeros-7.9.2$ARCH-patched.npk
         NPK_FILES=$(find all_packages$ARCH-7.9.2/*.npk)
         for file in $NPK_FILES; do
           sudo -E python3 npk.py sign $file $file
         done
         cd all_packages$ARCH-7.9.2/
-        sudo zip ../all_packages$ARCH-7.9.2-OEM.zip *.npk
+        sudo zip ../all_packages$ARCH-7.9.2-patched.zip *.npk
         cd ..
         sudo rm -rf all_packages$ARCH-7.9.2/
 
