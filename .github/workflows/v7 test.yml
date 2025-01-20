@@ -94,7 +94,7 @@ jobs:
         sudo rm -rf ./all_packages$ARCH-$LATEST_VERSION
 
     - name: Create Release tag ${{ env.LATEST_VERSION }}
-      if: steps.get_latest.outputs.has_new_version == 'true'
+      if: matrix.arch == 'x86'
       uses: softprops/action-gh-release@v2
       with:
         name: "RouterOS ${{ env.LATEST_VERSION }}"
