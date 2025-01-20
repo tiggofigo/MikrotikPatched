@@ -149,6 +149,7 @@ jobs:
         cd ../
 
     - name: Cache refind
+      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
       id: cache_refind
       uses: actions/cache@v4
       with:
