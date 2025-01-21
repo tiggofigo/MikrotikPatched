@@ -170,22 +170,22 @@ jobs:
     - name: Get routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk & all_packages${{ env.ARCH }}-${{ env.LATEST_VERSION }}.zip
       if:  steps.cache_routeros_npk.outputs.cache-hit != 'true' && matrix.arch == 'x86'
       run: |
-          sudo curl -s -o routeros-$LATEST_VERSION$ARCH.npk https://download.mikrotik.com/routeros/7.9.2/routeros-7.9.2.npk
-          sudo curl -s -o all_packages$ARCH-$LATEST_VERSION.zip https://download.mikrotik.com/routeros/7.9.2/all_packages-x86-7.9.2.zip
+          sudo curl -s -o routeros-$LATEST_VERSION$ARCH.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION$ARCH.npk
+          sudo curl -s -o all_packages$ARCH-$LATEST_VERSION.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/all_packages$ARCH-$LATEST_VERSION.zip
 
     - name: Patch routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk & all_packages${{ env.ARCH }}-${{ env.LATEST_VERSION }}.zip
       if:  matrix.arch == 'x86'
       run: |
         sudo mkdir ./all_packages$ARCH-$LATEST_VERSION
         sudo unzip all_packages$ARCH-$LATEST_VERSION.zip -d ./all_packages$ARCH-$LATEST_VERSION/
-        sudo cp routeros-$LATEST_VERSION$ARCH.npk routeros-$LATEST_VERSION$ARCH-patched.npk
+        sudo cp routeros-$LATEST_VERSION$ARCH.npk routeros-$LATEST_VERSION$ARCH-OEM.npk
         sudo -E python3 patch.py npk routeros-$LATEST_VERSION$ARCH.npk
         NPK_FILES=$(find ./all_packages$ARCH-$LATEST_VERSION/*.npk)
         for file in $NPK_FILES; do
             sudo -E python3 npk.py sign $file $file
         done
         cd ./all_packages$ARCH-$LATEST_VERSION
-        sudo zip ../all_packages$ARCH-$LATEST_VERSION-patched.zip *.npk
+        sudo zip ../all_packages$ARCH-$LATEST_VERSION-OEM.zip *.npk
         cd ..
         sudo rm -rf ./all_packages$ARCH-$LATEST_VERSION
 
@@ -198,5 +198,7 @@ jobs:
         tag_name: ${{ env.LATEST_VERSION }}
         make_latest: false
         files: |
-          routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}-patched.npk
-          all_packages*-${{ env.LATEST_VERSION }}-patched.zip
+          mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}-OEM.iso
+          install-image-${{ env.LATEST_VERSION }}${{ env.ARCH }}-OEM.*.zip
+          routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}-OEM.npk
+          all_packages*-${{ env.LATEST_VERSION }}-OEM.zip
