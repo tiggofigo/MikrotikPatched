@@ -177,7 +177,6 @@ jobs:
       run: |
         sudo mkdir ./all_packages$ARCH-$LATEST_VERSION
         sudo unzip all_packages$ARCH-$LATEST_VERSION.zip -d ./all_packages$ARCH-$LATEST_VERSION/
-        sudo cp routeros-$LATEST_VERSION$ARCH.npk routeros-$LATEST_VERSION$ARCH.npk
         sudo -E python3 patch.py npk routeros-$LATEST_VERSION$ARCH.npk
         NPK_FILES=$(find ./all_packages$ARCH-$LATEST_VERSION/*.npk)
         for file in $NPK_FILES; do
