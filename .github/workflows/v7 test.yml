@@ -81,13 +81,13 @@ jobs:
         for file in $NPK_FILES; do
           sudo -E python3 patch.py npk $file
         done
-        sudo cp new_iso/routeros-$LATEST_VERSION*.npk routeros-$LATEST_VERSION$ARCH-OEM.npk
+        sudo cp new_iso/routeros-$LATEST_VERSION*.npk routeros-$LATEST_VERSION$ARCH.npk
         sudo mkdir efiboot
         sudo mount -o loop new_iso/efiboot.img efiboot/
           sudo -E python3 patch.py kernel efiboot/linux.x86_64
           sudo cp efiboot/linux.x86_64 new_iso/isolinux/linux
           sudo umount efiboot/
-          sudo mkisofs -o mikrotik-$LATEST_VERSION$ARCH-OEM.iso \
+          sudo mkisofs -o mikrotik-$LATEST_VERSION$ARCH.iso \
                        -V "MikroTik $LATEST_VERSION $ARCH" \
                        -sysid "" -preparer "MiKroTiK" \
                        -publisher "" -A "MiKroTiK RouterOS" \
@@ -107,7 +107,7 @@ jobs:
         sudo cp new_iso/*.npk all_packages_iso$ARCH-$LATEST_VERSION/
         sudo rm -rf new_iso/
         cd all_packages_iso$ARCH-$LATEST_VERSION/
-        sudo zip ../all_packages$ARCH-$LATEST_VERSION-OEM.zip *.npk
+        sudo zip ../all_packages$ARCH-$LATEST_VERSION.zip *.npk
         cd ../
 
     - name: Cache refind
@@ -154,8 +154,8 @@ jobs:
         sudo umount /dev/nbd0
         sudo qemu-nbd -d /dev/nbd0
         sudo rm -rf install-image/
-        sudo mv install-image-$LATEST_VERSION.img install-image-$LATEST_VERSION$ARCH-OEM.img
-        sudo zip install-image-$LATEST_VERSION$ARCH-OEM.img.zip install-image-$LATEST_VERSION$ARCH-OEM.img
+        sudo mv install-image-$LATEST_VERSION.img install-image-$LATEST_VERSION$ARCH.img
+        sudo zip install-image-$LATEST_VERSION$ARCH.img.zip install-image-$LATEST_VERSION$ARCH.img
 
     - name: Cache routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk & all_packages${{ env.ARCH }}-${{ env.LATEST_VERSION }}.zip
       if:  matrix.arch == 'x86'
@@ -178,14 +178,14 @@ jobs:
       run: |
         sudo mkdir ./all_packages$ARCH-$LATEST_VERSION
         sudo unzip all_packages$ARCH-$LATEST_VERSION.zip -d ./all_packages$ARCH-$LATEST_VERSION/
-        sudo cp routeros-$LATEST_VERSION$ARCH.npk routeros-$LATEST_VERSION$ARCH-OEM.npk
+        sudo cp routeros-$LATEST_VERSION$ARCH.npk routeros-$LATEST_VERSION$ARCH.npk
         sudo -E python3 patch.py npk routeros-$LATEST_VERSION$ARCH.npk
         NPK_FILES=$(find ./all_packages$ARCH-$LATEST_VERSION/*.npk)
         for file in $NPK_FILES; do
             sudo -E python3 npk.py sign $file $file
         done
         cd ./all_packages$ARCH-$LATEST_VERSION
-        sudo zip ../all_packages$ARCH-$LATEST_VERSION-OEM.zip *.npk
+        sudo zip ../all_packages$ARCH-$LATEST_VERSION.zip *.npk
         cd ..
         sudo rm -rf ./all_packages$ARCH-$LATEST_VERSION
 
@@ -198,7 +198,7 @@ jobs:
         tag_name: ${{ env.LATEST_VERSION }}
         make_latest: false
         files: |
-          mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}-OEM.iso
-          install-image-${{ env.LATEST_VERSION }}${{ env.ARCH }}-OEM.*.zip
-          routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}-OEM.npk
-          all_packages*-${{ env.LATEST_VERSION }}-OEM.zip
+          mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}.iso
+          install-image-${{ env.LATEST_VERSION }}${{ env.ARCH }}.zip
+          routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk
+          all_packages*-${{ env.LATEST_VERSION }}.zip
