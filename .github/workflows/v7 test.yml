@@ -154,7 +154,6 @@ jobs:
         sudo umount /dev/nbd0
         sudo qemu-nbd -d /dev/nbd0
         sudo rm -rf install-image/
-        sudo mv install-image-$LATEST_VERSION.img install-image-$LATEST_VERSION$ARCH.img
         sudo zip install-image-$LATEST_VERSION$ARCH.img.zip install-image-$LATEST_VERSION$ARCH.img
 
     - name: Cache routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk & all_packages${{ env.ARCH }}-${{ env.LATEST_VERSION }}.zip
