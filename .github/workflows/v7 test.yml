@@ -39,7 +39,7 @@ jobs:
       run: |
         echo $(uname -a)
         NEWEST="1684842540"
-        LATEST_VERSION=LATEST_VERSION: "${{ github.event.inputs.INPUT_VERSION }}"
+        LATEST_VERSION=${{ github.event.inputs.INPUT_VERSION }}
         BUILD_TIME=${{ env.NEWEST }}
         echo Latest Version: $LATEST_VERSION
         echo Build Time: $BUILD_TIME
