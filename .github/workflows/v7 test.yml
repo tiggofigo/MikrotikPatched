@@ -102,7 +102,6 @@ jobs:
                        -no-emul-boot \
                        -R -J \
                        new_iso/
-        fi
         sudo rm -rf efiboot/
         sudo mkdir all_packages_iso$ARCH-$LATEST_VERSION
         sudo cp new_iso/*.npk all_packages_iso$ARCH-$LATEST_VERSION/
